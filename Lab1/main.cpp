@@ -1,14 +1,9 @@
 #include "Polygon.h"
 
 #include <iostream>
-#include <zconf.h>
 
-int main() {
-
-   /* FILE* file = fopen("kkk.tete","wb+");
-
-    fclose(file);*/
-
+int main()
+{
     polygon_space::Polygon polygon;
     polygon.input_from_file("../points.dat");
     polygon_space::TPoint point = {0.000, -1.0000};
