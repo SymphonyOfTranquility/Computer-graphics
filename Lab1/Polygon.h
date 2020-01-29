@@ -24,6 +24,8 @@ namespace polygon_space
     {
         TPoint direction;
 
+        TVector() = default;
+        
         TVector(TPoint a):direction(a){};
 
         TVector(double x1, double y1, double x2, double y2);
@@ -46,6 +48,9 @@ namespace polygon_space
         TPoint mid_dot(TPoint a, TPoint b);
 
     public:
+        
+        Polygon() = default;
+        
         Polygon():size(0){};
 
         Polygon(std::string pass_to_file);
