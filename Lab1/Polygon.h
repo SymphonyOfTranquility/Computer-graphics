@@ -15,7 +15,7 @@ namespace polygon_space
     {
         double x, y;
 
-        TPoint() = default;
+        TPoint() {}
 
         TPoint(double x, double y) : x(x), y(y) {};
     };
