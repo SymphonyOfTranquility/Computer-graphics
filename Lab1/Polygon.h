@@ -32,6 +32,7 @@ namespace polygon_space
 
         double get_angle(TVector a);
         bool is_on_left_side(TVector mid, TVector p);
+        bool is_on_same_side(TVector center, TVector point);
     };
 
     class Polygon
@@ -40,8 +41,7 @@ namespace polygon_space
         int size;
 
         bool check_rays(int left_ray, int mid_ray, const TPoint &center, const TPoint &point);
-
-        TPoint get_check_point(int left_point, int mid_point);
+        bool check_last_edge(int left_point, int right_point, const TPoint &center, const TPoint &point);
 
         TPoint mid_dot(TPoint a, TPoint b);
 
