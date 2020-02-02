@@ -5,8 +5,11 @@
 #ifndef LAB2_GRAPH_H
 #define LAB2_GRAPH_H
 
+#include "Vertex.h"
+
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace graph_space
 {
@@ -17,14 +20,6 @@ namespace graph_space
         TPoint() : x(0), y(0) {};
 
         TPoint(double x, double y) : x(x), y(y) {};
-    };
-
-    struct TVertex
-    {
-        int next_v, weight;
-
-        TVertex(): next_v(-1), weight(0) {};
-        TVertex(int next_v, int weight): next_v(next_v), weight(weight) {};
     };
 
     struct TEdge
@@ -40,14 +35,16 @@ namespace graph_space
     {
         std::vector<TPoint> vertexes;
         std::vector<TEdge> edges;
-        std::vector<std::vector<TVertex> > list_in;
-        std::vector<std::vector<TVertex> > list_out;
+        std::vector<std::vector<Vertex> > list;
         int vertex_number, edges_number;
-
-        Graph() : vertex_number(0),
-                  edges_number(0) { vertexes.clear(), edges.clear(), list_in.clear(), list_out.clear() };
-
+        bool comp(TPoint x, TPoint y);
         void input_graph(std::string file_name);
+    public:
+        Graph() : vertex_number(0),
+                  edges_number(0) { vertexes.clear(), edges.clear(), list.clear(); };
+
+        std::vector<int> sort_points();
+        void pre_processing();
     };
 }
 
