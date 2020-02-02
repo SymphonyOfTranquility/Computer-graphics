@@ -31,18 +31,11 @@ namespace polygon_space
         double angle_mid = get_angle(mid), angle_point = get_angle(p), eps = 0.0000001;
         if (std::abs(angle_point) < eps || (std::abs(angle_mid-angle_point ) < eps))
             return true;
-        if (angle_mid < 0.0)
-        {
-            if (angle_point > 0.0)
-                return false;
-            return (angle_point - angle_mid) >= 0;
-        }
-        else
-        {
-            if (angle_point < 0.0)
-                return true;
-            return (angle_point - angle_mid) >= 0;
-        }
+        if (angle_mid < 0.0 && angle_point > 0.0)
+            return false;
+        if (angle_mid > 0.0 && angle_point < 0.0)
+            return true;
+        return (angle_point - angle_mid) >= 0;
     }
 
     bool TVector::is_on_same_side(TVector center, TVector point)
