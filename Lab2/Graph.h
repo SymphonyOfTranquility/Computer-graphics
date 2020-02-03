@@ -35,17 +35,21 @@ namespace graph_space
     {
         std::vector<TPoint> vertexes;
         std::vector<TEdge> edges;
-        std::vector<std::vector<Vertex> > list;
+        std::vector<std::vector<Vertex> > adjacency_list;
         int vertex_number, edges_number;
-        bool comp(TPoint x, TPoint y);
-        void input_graph(std::string file_name);
-    public:
-        Graph() : vertex_number(0),
-                  edges_number(0) { vertexes.clear(), edges.clear(), list.clear(); };
 
         std::vector<int> sort_points();
+    public:
+        Graph() : vertex_number(0),
+                  edges_number(0) { vertexes.clear(), edges.clear(), adjacency_list.clear(); };
+
+
+        void input_graph(std::string file_name);
+
         void pre_processing();
+
         void regularization();
+
         void rebalance_weights();
     };
 }
