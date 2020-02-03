@@ -45,6 +45,8 @@ namespace graph_space
 
         std::vector<int> sort_points();
         void pre_processing();
+        void regularization();
+        void rebalance_weights();
     };
 }
 

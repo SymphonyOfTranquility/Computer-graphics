@@ -69,12 +69,60 @@ namespace graph_space
             if (edge.v1 > edge.v2)
                 std::swap(edge.v1, edge.v2);
             std::shared_ptr<int> weight = std::make_shared<int>(1);
-            list[edge.v2].emplace_back(edge.v1, weight);
-            list[edge.v1].emplace_back(edge.v2, weight);
+            std::shared_ptr<bool> real = std::make_shared<bool>(true);
+            list[edge.v2].emplace_back(edge.v1, weight, real);
+            list[edge.v1].emplace_back(edge.v2, weight, real);
         }
         for(int i = 0;i < vertex_number; ++i)
         {
            // std::sort(list[i].begin(), list[i].end(), comp...); //TODO
+        }
+    }
+
+    void Graph::regularization()
+    {
+        
+    }
+
+    void Graph::rebalance_weights()
+    {
+        for (int i = 1; i < vertex_number; ++i)
+        {
+            int all_weight_in = 0, counter_out = 0, id_most_left = -1;
+            for (int j = 0; j < list[i].size(); ++j)
+            {
+                if (list[i][j].next_v < i)
+                    all_weight_in += *(list[i][j].weight);
+                else
+                {
+                    if (id_most_left == -1)
+                        id_most_left = j;
+                    ++counter_out;
+                }
+            }
+            if (counter_out < all_weight_in)
+            {
+                *(list[i][id_most_left].weight) = all_weight_in - counter_out;
+            }
+        }
+        for (int i = vertex_number-2; i >= 0; --i)
+        {
+            int all_weight_in = 0, counter_out = 0, id_most_left = -1;
+            for (int j = 0; j < list[i].size(); --j)
+            {
+                if (list[i][j].next_v > i)
+                    all_weight_in += *(list[i][j].weight);
+                else
+                {
+                    if (id_most_left == -1)
+                        id_most_left = j;
+                    ++counter_out;
+                }
+            }
+            if (counter_out < all_weight_in)
+            {
+                *(list[i][id_most_left].weight) = all_weight_in - counter_out;
+            }
         }
     }
 

@@ -9,9 +9,13 @@ namespace graph_space
     Vertex::Vertex(const Vertex &v) noexcept
     {
         if (v.weight != nullptr)
-            weight = std::shared_ptr<int>(v.weight.get());
+            weight = std::make_shared<int>(*v.weight);
         else
             weight = nullptr;
+        if (v.real != nullptr)
+            real = std::make_shared<bool>(*v.real);
+        else
+            real = nullptr;
         next_v = v.next_v;
     }
 
@@ -20,10 +24,15 @@ namespace graph_space
         if (&v == this)
             return *this;
         if (v.weight != nullptr)
-            weight = std::shared_ptr<int>(v.weight.get());
+            weight = std::make_shared<int>(*v.weight);
         else
             weight = nullptr;
+        if (v.real != nullptr)
+            real = std::make_shared<bool>(*v.real);
+        else
+            real = nullptr;
         next_v = v.next_v;
+        real = v.real;
         return *this;
     }
 
@@ -31,6 +40,7 @@ namespace graph_space
     {
         next_v = v.next_v;
         weight = std::exchange(v.weight, nullptr);
+        real = std::exchange(v.real, nullptr);
     }
 
     Vertex &Vertex::operator=(Vertex &&v) noexcept
@@ -39,6 +49,7 @@ namespace graph_space
             return *this;
         next_v = v.next_v;
         weight = std::exchange(v.weight, nullptr);
+        real = std::exchange(v.real, nullptr);
         return *this;
     }
 
