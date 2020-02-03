@@ -95,7 +95,7 @@ namespace graph_space
 
     void Graph::regularization()
     {
-        
+
     }
 
     void Graph::rebalance_weights()

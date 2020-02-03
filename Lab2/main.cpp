@@ -4,7 +4,7 @@
 #include <string>
 int main()
 {
-    std::string file_name = "input.txt";
+    std::string file_name = "../input.txt";
     graph_space::Graph graph;
     graph.input_graph(file_name);
     graph.pre_processing();
