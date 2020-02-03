@@ -51,6 +51,8 @@ namespace graph_space
         void regularization();
 
         void rebalance_weights();
+
+        void output();
     };
 }
 
