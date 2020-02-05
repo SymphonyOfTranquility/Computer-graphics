@@ -41,7 +41,7 @@ namespace graph_space
 
         std::vector<int> sort_points();
 
-        void dfs(std::vector<std::vector<Vertex>> &list, int v, int num_chain);
+        void dfs(std::vector<std::vector<Vertex>> &list, int  v, int num_chain);
 
     public:
         Graph() : vertex_number(0), edges_number(0)

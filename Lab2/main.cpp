@@ -15,7 +15,7 @@ int main()
     graph.output_chains();
     graph.output_adjacency_list();
 
-    std::vector<graph_space::TPoint> region = graph.find_point(graph_space::TPoint(8, 3));
+  //  std::vector<graph_space::TPoint> region = graph.find_point(graph_space::TPoint(8, 3));
     std::cout << "Hello, World!" << std::endl;
     return 0;
 }

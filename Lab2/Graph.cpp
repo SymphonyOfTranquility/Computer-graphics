@@ -41,10 +41,9 @@ namespace graph_space
         chains[num_chain].push_back(v);
         std::vector<int> cur_chain = chains[num_chain];
         bool flag = false;
-        for (int i = static_cast<int>(list[v].size())-1; i >= 0; --i)
+        for (int i = 0; i < list[v].size(); ++i)
         {
             int next_v = list[v][i].next_v;
-            --*(list[v][i].weight);
             if (!flag)
             {
                 dfs(list, next_v, num_chain);
@@ -53,7 +52,7 @@ namespace graph_space
             else
             {
                 chains.push_back(cur_chain);
-                dfs(list,next_v, static_cast<int>(chains.size())-1);
+                dfs(list, next_v, static_cast<int>(chains.size())-1);
             }
         }
     }
@@ -158,11 +157,18 @@ namespace graph_space
         for (int i = 0;i < vertex_number-1; ++i)
         {
             for (int j = 0;j < adjacency_list[i].size(); ++j)
-            {
                 if (adjacency_list[i][j].next_v > i)
                     temp_list[i].push_back(adjacency_list[i][j]);
-            }
+
+            std::sort(temp_list[i].begin(), temp_list[i].end(),
+                    [this](const Vertex &a, const Vertex &b) -> bool
+                    {
+                        TPoint point_a = vertexes[a.next_v], point_b = vertexes[b.next_v];
+                        return point_a.x < point_b.x || (point_a.x == point_b.x && point_a.y < point_b.y);
+                    });
         }
+
+        chains_number = 0;
         chains.clear();
         chains.resize(1);
         dfs(temp_list, 0, 0);
@@ -172,7 +178,12 @@ namespace graph_space
 
     std::vector<TPoint> Graph::find_point(TPoint x)
     {
-
+        int l_chain = -1, r_chain = chains_number;
+        while (r_chain-l_chain > 1)
+        {
+            int mid = (r_chain + l_chain) >> 1;
+            //if (above)
+        }
     }
 
     void Graph::output()
