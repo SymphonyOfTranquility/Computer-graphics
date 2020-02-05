@@ -42,6 +42,10 @@ namespace graph_space
         std::vector<int> sort_points();
 
         void dfs(std::vector<std::vector<Vertex>> &list, int  v, int num_chain);
+        std::vector<int> get_nearest(int chain, TPoint point);
+        bool above_chain(int chain_id, TPoint x);
+        std::vector<int> get_area(int chain_id, TPoint point);
+        double get_angle(TPoint a, TPoint b, TPoint u);
 
     public:
         Graph() : vertex_number(0), edges_number(0)
@@ -54,8 +58,9 @@ namespace graph_space
         void pre_processing();
         void rebalance_weights();
         void create_chains();
-        std::vector<TPoint> find_point(TPoint x);
+        std::vector<int> find_point(TPoint x);
 
+        void output_point_indexes(std::vector<int> indexes);
         void output();
         void output_adjacency_list();
         void output_chains();

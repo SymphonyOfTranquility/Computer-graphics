@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <iostream>
+#include <cmath>
 
 namespace graph_space
 {
@@ -55,6 +56,106 @@ namespace graph_space
                 dfs(list, next_v, static_cast<int>(chains.size())-1);
             }
         }
+    }
+
+    std::vector<int> Graph::get_nearest(int chain_id, TPoint point)
+    {
+        int l_point = -1, r_point = chains[chain_id].size();
+        while (r_point - l_point > 1)
+        {
+            int mid = (l_point + r_point)/2;
+            if (vertexes[chains[chain_id][mid]].y <= point.y)
+                l_point = mid;
+            else
+                r_point = mid;
+        }
+        std::vector<int> answer;
+        if (r_point != chains[chain_id].size())
+            answer.push_back(chains[chain_id][r_point]);
+        if (l_point != -1)
+            answer.push_back(chains[chain_id][l_point]);
+        return answer;
+    }
+
+    bool Graph::above_chain(int chain_id, TPoint point)
+    {
+        std::vector<int> nearest = get_nearest(chain_id, point);
+        TPoint dot1 = vertexes[nearest[0]], dot2;
+        if (nearest.size() == 1)
+            dot2 = {vertexes[nearest[0]].x, std::max(vertexes[nearest[0]].y, point.y + 1.0)};
+        else
+            dot2 = vertexes[nearest[1]];
+        double a = dot1.y - dot2.y, b = dot2.x - dot1.x;
+        double c = dot1.x*dot2.y - dot1.y*dot2.x;
+        if (a > 0)
+            return a * point.x + b * point.y + c >= 0;
+        else
+            return -a * point.x - b * point.y - c >= 0;
+    }
+
+    double Graph::get_angle(TPoint a, TPoint b, TPoint u)
+    {
+        TPoint vec_a = {a.x - u.x, a.y - u.y};
+        TPoint vec_b = {b.x - u.x, b.y - u.y};
+        double dot = vec_a.x*vec_b.x + vec_a.y*vec_b.y;
+        double det = vec_a.x*vec_b.y - vec_a.y*vec_b.x;
+        return atan2(det, dot)*180.0/M_PI;
+    }
+
+    std::vector<int> Graph::get_area(int chain_id, TPoint point)
+    {
+        std::vector<int> nearest = get_nearest(chain_id, point);
+        std::vector<int> area;
+        if (nearest.size() == 1)
+        {
+            for (int i = 0;i < chains[0].size(); ++i)
+                area.push_back(chains[0][i]);
+            for (int i = static_cast<int>((chains.end()-1)->size())-2; i > 0; --i)
+                area.push_back((*(chains.end()-1))[i]);
+            return area;
+        }
+        bool flag = true;
+        area = nearest;
+
+        while (flag)
+        {
+            int step = 1;
+            int cur_v = *(area.end()-1);
+            int prev_v = *(area.end()-2);
+            int ans_v = adjacency_list[cur_v][0].next_v;
+            if (ans_v == prev_v)
+            {
+                ans_v = adjacency_list[cur_v][1].next_v;
+                ++step;
+            }
+            double ans_angle = get_angle(vertexes[prev_v], vertexes[ans_v], vertexes[cur_v]);
+
+            for (int i = step;i < adjacency_list[cur_v].size(); ++i)
+            {
+                int next_v = adjacency_list[cur_v][i].next_v;
+                if (next_v == prev_v)
+                    continue;
+                double next_v_angle = get_angle(vertexes[prev_v], vertexes[next_v], vertexes[cur_v]);
+                if (ans_angle*next_v_angle > 0)
+                {
+                    if (ans_angle < next_v_angle)
+                    {
+                        ans_v = next_v;
+                        ans_angle = next_v_angle;
+                    }
+                }
+                else if (ans_angle > 0)
+                {
+                    ans_v = next_v;
+                    ans_angle = next_v_angle;
+                }
+            }
+            if (ans_v == area[0])
+                flag = false;
+            else
+                area.push_back(ans_v);
+        }
+        return area;
     }
 
     void Graph::input_graph(std::string file_name)
@@ -150,7 +251,6 @@ namespace graph_space
         }
     }
 
-
     void Graph::create_chains()
     {
         std::vector<std::vector<Vertex> > temp_list(vertex_number);
@@ -176,14 +276,30 @@ namespace graph_space
     }
 
 
-    std::vector<TPoint> Graph::find_point(TPoint x)
+    std::vector<int> Graph::find_point(TPoint x)
     {
         int l_chain = -1, r_chain = chains_number;
         while (r_chain-l_chain > 1)
         {
-            int mid = (r_chain + l_chain) >> 1;
-            //if (above)
+            int mid = (r_chain + l_chain) / 2;
+            if (above_chain(mid, x))
+                l_chain = mid;
+            else
+                r_chain = mid;
         }
+        if (r_chain == -1)
+            return get_area(r_chain, x);
+        else
+            return get_area(l_chain, x);
+    }
+
+    void Graph::output_point_indexes(std::vector<int> indexes)
+    {
+        for (int i = 0;i < indexes.size(); ++i)
+            std::cout << indexes[i] << ' ';
+        std::cout << '\n';
+        for (int i = 0;i < indexes.size(); ++i)
+            std::cout << vertexes[indexes[i]].x << ' ' << vertexes[indexes[i]].y << '\n';
     }
 
     void Graph::output()
@@ -206,7 +322,7 @@ namespace graph_space
             {
 //                std::cout << item.next_v << ", ";
                 std::cout << "{ " << item.next_v;
-                std::cout << "  w  " << *(item.weight) << " },";
+                std::cout << ", " << *(item.weight) << " },";
             }
             std::cout << '\n';
         }

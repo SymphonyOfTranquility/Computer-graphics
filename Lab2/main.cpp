@@ -15,7 +15,16 @@ int main()
     graph.output_chains();
     graph.output_adjacency_list();
 
-  //  std::vector<graph_space::TPoint> region = graph.find_point(graph_space::TPoint(8, 3));
-    std::cout << "Hello, World!" << std::endl;
+    std::vector<int> region = graph.find_point(graph_space::TPoint(5, 3));
+    graph.output_point_indexes(region);
+    region = graph.find_point(graph_space::TPoint(8, 3));
+    graph.output_point_indexes(region);
+    region = graph.find_point(graph_space::TPoint(5, 0));
+    graph.output_point_indexes(region);
+    region = graph.find_point(graph_space::TPoint(9, 0));
+    graph.output_point_indexes(region);
+    region = graph.find_point(graph_space::TPoint(4, -4));
+    graph.output_point_indexes(region);
+    
     return 0;
 }
