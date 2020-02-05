@@ -14,14 +14,10 @@ namespace graph_space
     public:
         int next_v;
         std::shared_ptr<int> weight;
-        std::shared_ptr<bool> real;
 
-        Vertex() noexcept : next_v(-1), weight(nullptr), real(nullptr) {};
+        Vertex() noexcept : next_v(-1), weight(nullptr) {};
 
-        Vertex(int next_v, std::shared_ptr<int> weight, std::shared_ptr<bool> real) noexcept : next_v(next_v),
-                                                                                               weight(std::move(
-                                                                                                       weight)),
-                                                                                               real(std::move(real)) {};
+        Vertex(int next_v, std::shared_ptr<int> weight) noexcept : next_v(next_v), weight(std::move(weight)) {};
 
         Vertex(const Vertex &v) noexcept;
 

@@ -36,6 +36,28 @@ namespace graph_space
         return sorted;
     }
 
+    void Graph::dfs(std::vector<std::vector<Vertex> > &list, int v, int num_chain)
+    {
+        chains[num_chain].push_back(v);
+        std::vector<int> cur_chain = chains[num_chain];
+        bool flag = false;
+        for (int i = static_cast<int>(list[v].size())-1; i >= 0; --i)
+        {
+            int next_v = list[v][i].next_v;
+            --*(list[v][i].weight);
+            if (!flag)
+            {
+                dfs(list, next_v, num_chain);
+                flag = true;
+            }
+            else
+            {
+                chains.push_back(cur_chain);
+                dfs(list,next_v, static_cast<int>(chains.size())-1);
+            }
+        }
+    }
+
     void Graph::input_graph(std::string file_name)
     {
         std::ifstream file;
@@ -75,32 +97,21 @@ namespace graph_space
             if (edge.v1 > edge.v2)
                 std::swap(edge.v1, edge.v2);
             std::shared_ptr<int> weight = std::make_shared<int>(1);
-            std::shared_ptr<bool> real = std::make_shared<bool>(true);
-            adjacency_list[edge.v2].emplace_back(edge.v1, weight, real);
-            adjacency_list[edge.v1].emplace_back(edge.v2, weight, real);
+            adjacency_list[edge.v2].emplace_back(edge.v1, weight);
+            adjacency_list[edge.v1].emplace_back(edge.v2, weight);
         }
         for (int i = 0; i < vertex_number; ++i)
         {
             std::sort(adjacency_list[i].begin(), adjacency_list[i].end(),
                       [this](const Vertex &a, const Vertex &b) -> bool {
-                          TPoint point_a = vertexes[a.next_v];
-                          TPoint point_b = vertexes[b.next_v];
-                          double eps = 0.000001;
-                          if (std::abs(point_a.x - point_b.x) < eps)
-                              return point_a.y < point_b.y;
-                          return point_a.x < point_b.x;
+                          return a.next_v < b.next_v;
                       });
         }
     }
 
-    void Graph::regularization()
-    {
-
-    }
-
     void Graph::rebalance_weights()
     {
-        for (int i = 1; i < vertex_number; ++i)
+        for (int i = 1; i < vertex_number-1; ++i)
         {
             int all_weight_in = 0, counter_out = 0, id_most_left = -1;
             for (int j = 0; j < adjacency_list[i].size(); ++j)
@@ -116,13 +127,13 @@ namespace graph_space
             }
             if (counter_out < all_weight_in)
             {
-                *(adjacency_list[i][id_most_left].weight) = all_weight_in - counter_out;
+                *(adjacency_list[i][id_most_left].weight) += all_weight_in - counter_out;
             }
         }
-        for (int i = vertex_number - 2; i >= 0; --i)
+        for (int i = vertex_number - 2; i > 0; --i)
         {
-            int all_weight_in = 0, counter_out = 0, id_most_left = -1;
-            for (int j = 0; j < adjacency_list[i].size(); --j)
+            int all_weight_in = 0, all_weight_out = 0, id_most_left = -1;
+            for (int j = 0; j < adjacency_list[i].size(); ++j)
             {
                 if (adjacency_list[i][j].next_v > i)
                     all_weight_in += *(adjacency_list[i][j].weight);
@@ -130,14 +141,38 @@ namespace graph_space
                 {
                     if (id_most_left == -1)
                         id_most_left = j;
-                    ++counter_out;
+                    all_weight_out += *(adjacency_list[i][j].weight);
                 }
             }
-            if (counter_out < all_weight_in)
+            if (all_weight_out < all_weight_in)
             {
-                *(adjacency_list[i][id_most_left].weight) = all_weight_in - counter_out;
+                *(adjacency_list[i][id_most_left].weight) += all_weight_in - all_weight_out;
             }
         }
+    }
+
+
+    void Graph::create_chains()
+    {
+        std::vector<std::vector<Vertex> > temp_list(vertex_number);
+        for (int i = 0;i < vertex_number-1; ++i)
+        {
+            for (int j = 0;j < adjacency_list[i].size(); ++j)
+            {
+                if (adjacency_list[i][j].next_v > i)
+                    temp_list[i].push_back(adjacency_list[i][j]);
+            }
+        }
+        chains.clear();
+        chains.resize(1);
+        dfs(temp_list, 0, 0);
+        chains_number = chains.size();
+    }
+
+
+    std::vector<TPoint> Graph::find_point(TPoint x)
+    {
+
     }
 
     void Graph::output()
@@ -148,17 +183,31 @@ namespace graph_space
         std::cout << "\n\n" << edges_number << '\n';
         for (int i = 0;i < edges_number; ++i)
             std::cout << edges[i].v1 << ' ' << edges[i].v2 << '\n';
+    }
+
+    void Graph::output_adjacency_list()
+    {
         std::cout << "\n\n";
         for (int i = 0;i < adjacency_list.size(); ++i)
         {
             std::cout << i << " : ";
             for (auto & item : adjacency_list[i])
             {
-                std::cout << item.next_v<< ", ";
-//                std::cout << "{ v:" << item.next_v;
-//                std::cout << ", w:" << *(item.weight) << ", r:";
-//                std::cout << *(item.real) << " },";
+//                std::cout << item.next_v << ", ";
+                std::cout << "{ " << item.next_v;
+                std::cout << "  w  " << *(item.weight) << " },";
             }
+            std::cout << '\n';
+        }
+    }
+
+    void Graph::output_chains()
+    {
+        for (int i = 0;i < chains_number; ++i)
+        {
+            std::cout << "Chain " << i << ": ";
+            for (int j = 0; j < chains[i].size(); ++j)
+                std::cout << chains[i][j] << ' ';
             std::cout << '\n';
         }
     }

@@ -36,23 +36,29 @@ namespace graph_space
         std::vector<TPoint> vertexes;
         std::vector<TEdge> edges;
         std::vector<std::vector<Vertex> > adjacency_list;
-        int vertex_number, edges_number;
+        std::vector<std::vector<int> > chains;
+        int vertex_number, edges_number, chains_number;
 
         std::vector<int> sort_points();
-    public:
-        Graph() : vertex_number(0),
-                  edges_number(0) { vertexes.clear(), edges.clear(), adjacency_list.clear(); };
 
+        void dfs(std::vector<std::vector<Vertex>> &list, int v, int num_chain);
+
+    public:
+        Graph() : vertex_number(0), edges_number(0)
+        {
+            vertexes.clear(), edges.clear(), adjacency_list.clear();
+            chains.clear();
+        };
 
         void input_graph(std::string file_name);
-
         void pre_processing();
-
-        void regularization();
-
         void rebalance_weights();
+        void create_chains();
+        std::vector<TPoint> find_point(TPoint x);
 
         void output();
+        void output_adjacency_list();
+        void output_chains();
     };
 }
 
