@@ -287,8 +287,8 @@ namespace graph_space
             else
                 r_chain = mid;
         }
-        if (r_chain == -1)
-            return get_area(r_chain, x);
+        if (l_chain == -1)
+            return get_area(chains_number-1, x);
         else
             return get_area(l_chain, x);
     }

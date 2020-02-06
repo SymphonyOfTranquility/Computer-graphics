@@ -17,13 +17,16 @@ int main()
 
     std::vector<int> region = graph.find_point(graph_space::TPoint(5, 3));
     graph.output_point_indexes(region);
-    region = graph.find_point(graph_space::TPoint(8, 3));
+    region = graph.find_point(graph_space::TPoint(3, 3));
     graph.output_point_indexes(region);
     region = graph.find_point(graph_space::TPoint(5, 0));
     graph.output_point_indexes(region);
-    region = graph.find_point(graph_space::TPoint(9, 0));
+    region = graph.find_point(graph_space::TPoint(0, 0));
     graph.output_point_indexes(region);
     region = graph.find_point(graph_space::TPoint(4, -4));
+    graph.output_point_indexes(region);
+    
+    region = graph.find_point(graph_space::TPoint(1, 4));
     graph.output_point_indexes(region);
     
     return 0;
