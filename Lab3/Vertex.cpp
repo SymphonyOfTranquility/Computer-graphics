@@ -1,6 +1,7 @@
 //
-// Created by art on 2/16/20.
+// Created by art on 2/19/20.
 //
+
 
 #include "Vertex.h"
 
@@ -8,10 +9,7 @@ namespace graph_space
 {
     Vertex::Vertex(const Vertex &v) noexcept
     {
-        if (v.weight != nullptr)
-            weight = std::make_shared<int>(*v.weight);
-        else
-            weight = nullptr;
+        edge_id = v.edge_id;
         next_v = v.next_v;
     }
 
@@ -19,10 +17,7 @@ namespace graph_space
     {
         if (&v == this)
             return *this;
-        if (v.weight != nullptr)
-            weight = std::make_shared<int>(*v.weight);
-        else
-            weight = nullptr;
+        edge_id = v.edge_id;
         next_v = v.next_v;
         return *this;
     }
@@ -30,7 +25,7 @@ namespace graph_space
     Vertex::Vertex(Vertex &&v) noexcept
     {
         next_v = v.next_v;
-        weight = std::exchange(v.weight, nullptr);
+        edge_id = std::exchange(v.edge_id, nullptr);
     }
 
     Vertex &Vertex::operator=(Vertex &&v) noexcept
@@ -38,7 +33,7 @@ namespace graph_space
         if (&v == this)
             return *this;
         next_v = v.next_v;
-        weight = std::exchange(v.weight, nullptr);
+        edge_id = std::exchange(v.edge_id, nullptr);
         return *this;
     }
 
