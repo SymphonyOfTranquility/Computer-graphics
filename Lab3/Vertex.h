@@ -13,11 +13,12 @@ namespace graph_space
     {
     public:
         int next_v;
+        bool used;
         std::shared_ptr<int> edge_id;
 
-        Vertex() noexcept : next_v(-1), edge_id(nullptr) {};
+        Vertex() noexcept : next_v(-1), edge_id(nullptr), used(false) {};
 
-        Vertex(int next_v, std::shared_ptr<int> edge_id) noexcept : next_v(next_v), edge_id(edge_id) {};
+        Vertex(int next_v, std::shared_ptr<int> edge_id) noexcept : next_v(next_v), edge_id(edge_id), used(false) {};
 
         Vertex(const Vertex &v) noexcept;
 

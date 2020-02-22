@@ -140,19 +140,17 @@ namespace graph_space
     void Graph::create_triangulation_tree()
     {
         add_triangle();
-        sort_counter_clockwise();
-        output();
-        output_adjacency_list();
-        std::vector<int> vert;
+        std::vector<int> indeces;
         for (int i = 0;i < vertex_number; ++i)
-            vert.push_back(i);
-        std::vector<TEdge> new_edges = triangulate(vert, adjacency_list);
-        std::cout << "JJJJJJJJJJJJJJJJJ \n";
-        for (int i = 0;i < new_edges.size(); ++i)
-        {
-            std::cout << new_edges[i].v1 << ' ' << new_edges[i].v2 << '\n';
-        }
-        std::cout << '\n';
+            indeces.push_back(i);
+
+        triangulation_vertexes.push_back(indeces);
+        triangulation_lists.push_back(adjacency_list);
+        sort_counter_clockwise(indeces, triangulation_lists[0]);
+
+        std::vector<TEdge> new_edges = create_monotonous_polygon(triangulation_vertexes[0], triangulation_lists[0]);
+        add_new_edges(triangulation_lists[0], new_edges);
+        triangulate(triangulation_vertexes[0], triangulation_lists[0]);
 
     }
 
@@ -235,16 +233,16 @@ namespace graph_space
         adjacency_list[0].emplace_back(vertex_number-1, edge_id);
     }
 
-    void Graph::sort_counter_clockwise()
+    void Graph::sort_counter_clockwise(const std::vector<int> &indeces, std::vector<std::vector<Vertex> > &cur_list)
     {
-        for (int i = 0;i < vertex_number; ++i)
+        for (int i = 0; i < indeces.size(); ++i)
         {
-            std::sort(adjacency_list[i].begin(), adjacency_list[i].end(),
-                    [i, this](const Vertex &a,const Vertex &b)-> bool {
-                TPoint point_a = vertexes[a.next_v];
-                TPoint point_b = vertexes[b.next_v];
-                TPoint end_point = vertexes[i];
-                TPoint master_vector = TPoint(vertexes[i].x-10,vertexes[i].y);
+            std::sort(cur_list[i].begin(), cur_list[i].end(),
+                    [i, indeces, this](const Vertex &a, const Vertex &b)-> bool {
+                TPoint point_a = vertexes[indeces[a.next_v]];
+                TPoint point_b = vertexes[indeces[b.next_v]];
+                TPoint end_point = vertexes[indeces[i]];
+                TPoint master_vector = TPoint(vertexes[indeces[i]].x - 10, vertexes[indeces[i]].y);
                 double angle_a = get_angle(master_vector, point_a, end_point);
                 double angle_b = get_angle(master_vector, point_b, end_point);
                 double eps = 0.0001;
@@ -260,7 +258,7 @@ namespace graph_space
         }
     }
 
-    std::vector<TEdge> Graph::triangulate(std::vector<int> points, std::vector<std::vector<Vertex> > cur_list)
+    std::vector<TEdge> Graph::create_monotonous_polygon(std::vector<int> points, std::vector<std::vector<Vertex> > cur_list)
     {
         std::vector<VType> types;
         types.push_back(VType::START);
@@ -438,4 +436,222 @@ namespace graph_space
         return new_edges;
     }
 
+    void Graph::add_new_edges(std::vector<std::vector<Vertex> > &cur_list, std::vector<TEdge> &cur_edges)
+    {
+        for (auto & cur_edge : cur_edges)
+        {
+            std::shared_ptr<int> weight = std::make_shared<int>(-1);
+            cur_list[cur_edge.v1].emplace_back(cur_edge.v2, weight);
+            cur_list[cur_edge.v2].emplace_back(cur_edge.v1, weight);
+        }
+    }
+
+    void Graph::output_triangulation_list(int index)
+    {
+        std::cout << '\n';
+        for (int i = 0;i < triangulation_vertexes[index].size(); ++i)
+        {
+            std::cout << i << " : ";
+            for (auto & item : triangulation_lists[index][i])
+            {
+                std::cout << item.next_v << ", ";
+            }
+            std::cout << '\n';
+        }
+    }
+
+    void Graph::triangulate(const std::vector<int> &points, std::vector<std::vector<Vertex> > &cur_list)
+    {
+        sort_counter_clockwise(points, cur_list);
+        std::vector<std::vector<std::pair<int,int > > > polygons = get_all_polygons(points, cur_list);
+        for (int i = 0; i < polygons.size(); ++i)
+            divide_on_triangles(polygons[i], points, cur_list);
+    }
+
+    std::vector<std::vector<std::pair<int, int> > > Graph::get_all_polygons(const std::vector<int> &points, std::vector<std::vector<Vertex> > &cur_list)
+    {
+        std::vector<std::vector<std::pair<int, int> > > polygons;
+        for (int start_v = 0; start_v < points.size(); ++start_v)
+        {
+            for (int j = 0;j < cur_list[start_v].size(); ++j)
+            {
+                std::vector<std::pair<int, int> > cur_poly(points.size(), {-1, -1});
+                int cur_v = start_v, next_v = cur_list[start_v][j].next_v;
+                if (cur_list[start_v][j].used)
+                    continue;
+                cur_poly[cur_v].second = next_v;
+                cur_poly[next_v].first = cur_v;
+                cur_list[start_v][j].used = true;
+                while (next_v != start_v)
+                {
+                    for (int i = 0;i < cur_list[next_v].size(); ++i)
+                    {
+                        if (cur_list[next_v][i].next_v == cur_v)
+                        {
+                            cur_v = next_v;
+                            next_v = cur_list[cur_v][(i+1)%cur_list[cur_v].size()].next_v;
+                            cur_poly[cur_v].second = next_v;
+                            cur_poly[next_v].first = cur_v;
+                            cur_list[cur_v][(i+1)%cur_list[cur_v].size()].used = true;
+                            break;
+                        }
+                    }
+                }
+                polygons.push_back(cur_poly);
+            }
+        }
+        return polygons;
+    }
+
+    void Graph::output_polygons(const std::vector<std::vector<std::pair<int, int> > > &polygons)
+    {
+        std::cout << "Number of polygons: " << polygons.size() << '\n';
+        for (int i = 0;i < polygons.size(); ++i)
+        {
+            std::cout << i << " ::: \n";
+            for (int j = 0;j < polygons[i].size(); ++j)
+            {
+                if (j < 10)
+                    std::cout << ' ';
+                std::cout << j << ' ';
+            }
+            std::cout << '\n';
+            for (int j = 0;j < polygons[i].size(); ++j)
+            {
+                if (polygons[i][j].first < 10 && polygons[i][j].first> -1)
+                    std::cout << ' ';
+                std::cout << polygons[i][j].first << ' ';
+            }
+            std::cout << '\n';
+            for (int j = 0;j < polygons[i].size(); ++j)
+            {
+                if (polygons[i][j].second < 10 && polygons[i][j].second > -1)
+                    std::cout << ' ';
+                std::cout << polygons[i][j].second << ' ';
+            }
+            std::cout << '\n';
+        }
+    }
+
+    void Graph::divide_on_triangles(std::vector<std::pair<int, int> > &polygon,
+                                    const std::vector<int> &points,
+                                    std::vector<std::vector<Vertex> > &cur_list)
+    {
+        std::vector<int> vertex_side = set_side_for_edges(polygon, points);
+        std::vector<int> stack;
+        std::vector<int> used_points;
+        for (int i = 0; i < polygon.size(); ++i)
+            if (polygon[i].first != -1)
+            {
+                used_points.push_back(i);
+                if (polygon[i].first > polygon[i].second)
+                    std::swap(polygon[i].first, polygon[i].second);
+            }
+        stack.push_back(used_points[0]);
+        stack.push_back(used_points[1]);
+
+        for (int i = 2;i < used_points.size()-1; ++i)
+        {
+            int cur_vertex = used_points[i];
+            int stack_top = *(stack.end()-1);
+            stack.pop_back();
+            if (vertex_side[stack_top] == vertex_side[cur_vertex])
+            {
+                int elem = -1;
+                while (!stack.empty())
+                {
+                    elem = *(stack.end()-1);
+                    stack.pop_back();
+                    if (check_angle_side(elem, stack_top, cur_vertex, vertex_side[cur_vertex], points))
+                    {
+                        std::shared_ptr<int> id = std::make_shared<int>(-1);
+                        cur_list[elem].emplace_back(cur_vertex, id);
+                        cur_list[cur_vertex].emplace_back(elem, id);
+                        stack_top = elem;
+                    } else {
+                        stack.push_back(elem);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                int elem = -1;
+                stack.push_back(stack_top);
+                while (!stack.empty())
+                {
+                    elem = *(stack.end()-1);
+                    stack.pop_back();
+                    if (elem != polygon[cur_vertex].first)
+                    {
+                        std::shared_ptr<int> id = std::make_shared<int>(-1);
+                        cur_list[elem].emplace_back(cur_vertex, id);
+                        cur_list[cur_vertex].emplace_back(elem, id);
+                    }
+                }
+            }
+            stack.push_back(stack_top);
+            stack.push_back(cur_vertex);
+        }
+
+        int last_vertex = *(used_points.end()-1);
+        int elem = -1;
+        while (!stack.empty())
+        {
+            elem = *(stack.end()-1);
+            stack.pop_back();
+            if (elem != polygon[last_vertex].first && elem != polygon[last_vertex].second)
+            {
+                std::shared_ptr<int> id = std::make_shared<int>(-1);
+                cur_list[elem].emplace_back(last_vertex, id);
+                cur_list[last_vertex].emplace_back(elem, id);
+            }
+        }
+    }
+
+    std::vector<int> Graph::set_side_for_edges(const std::vector<std::pair<int, int> > &polygon,
+                                               const std::vector<int> &points)
+    {
+        std::vector<int> ans(polygon.size(), -1);                      //-1 - not in polygon
+        int j = 0;
+        while (polygon[j].first == -1) ++j;
+        int left_vertex = j, right_vertex = j;
+        ans[left_vertex] = 2;
+        left_vertex = polygon[j].first;
+        right_vertex = polygon[j].second;
+        TPoint point_a = vertexes[points[left_vertex]],
+               point_b = vertexes[points[right_vertex]],
+               point_mid = vertexes[points[j]],
+               set_point(point_mid.y - std::abs(2 * point_mid.y), point_mid.y);
+
+        double angle1 = get_angle(set_point, point_a, point_mid);
+        double angle2 = get_angle(set_point, point_b, point_mid);
+        if (angle1 > angle2)
+            std::swap(left_vertex, right_vertex);
+        set_side_for_chains(polygon, ans, left_vertex, 1);          //1 - left
+        set_side_for_chains(polygon, ans, right_vertex, 2);         //2 - right
+        return ans;
+    }
+
+    void Graph::set_side_for_chains(const std::vector<std::pair<int, int> > &polygon, std::vector<int> &chains_side, int vertex, int type)
+    {
+        chains_side[vertex] = type;
+        while (polygon[vertex].first > vertex || polygon[vertex].second > vertex)
+        {
+            vertex = std::max(polygon[vertex].first, polygon[vertex].second);
+            chains_side[vertex] = type;
+        }
+    }
+
+    bool Graph::check_angle_side(int last_vertex, int middle_vertex, int current_vertex, int vertex_side,
+                                 const std::vector<int> &points)
+    {
+        TPoint point_last = vertexes[points[last_vertex]];
+        TPoint point_mid = vertexes[points[middle_vertex]];
+        TPoint point_cur = vertexes[points[current_vertex]];
+        double angle = get_angle(point_last, point_cur, point_mid);
+        if (std::abs(angle) < 0.00001 || std::abs(angle - 180.0) < 0.00001)
+            return false;
+        return (angle < 0 && vertex_side == 1) || (angle > 0 && vertex_side == 2);
+    }
 }

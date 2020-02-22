@@ -31,6 +31,7 @@ namespace graph_space
 
         TEdge(int v1, int v2, bool used) : v1(v1), v2(v2), used(used) {};
     };
+
     class Graph
     {
         enum VType
@@ -46,15 +47,34 @@ namespace graph_space
         std::vector<std::vector<Vertex> > adjacency_list;
         std::vector<std::pair<int, int> > nearest_edges;
         int vertex_number, edges_number;
+        std::vector<std::vector<std::vector<Vertex> > > triangulation_lists;
+        std::vector<std::vector<int> > triangulation_vertexes;
 
         std::vector<int> sort_points();
 
         double get_angle(TPoint a, TPoint b, TPoint u);
+
         int get_side_dot(int side); //-1 - left, 1 right
         void add_triangle();
-        void sort_counter_clockwise();
 
-        std::vector<TEdge> triangulate(std::vector<int> points, std::vector<std::vector<Vertex> > cur_list);
+        void sort_counter_clockwise(const std::vector<int> &indeces, std::vector<std::vector<Vertex> > &cur_list);
+
+        void add_new_edges(std::vector<std::vector<Vertex> > &cur_list, std::vector<TEdge> &cur_edges);
+
+        std::vector<std::vector<std::pair<int, int> > >
+        get_all_polygons(const std::vector<int> &points, std::vector<std::vector<Vertex> > &cur_list);
+
+        bool check_angle_side(int last_vertex, int middle_vertex, int current_vertex, int vertex_side,
+                              const std::vector<int> &points);
+        void set_side_for_chains(const std::vector<std::pair<int, int> > &polygon, std::vector<int> &chains_side, int start, int type);
+        std::vector<int> set_side_for_edges(const std::vector<std::pair<int, int> > &polygon,
+                                            const std::vector<int> &points);
+        void divide_on_triangles(std::vector<std::pair<int, int> > &polygon,
+                const std::vector<int> &points, std::vector<std::vector<Vertex> > &cur_list);
+        void triangulate(const std::vector<int> &points, std::vector<std::vector<Vertex> > &cur_list);
+        std::vector<TEdge> create_monotonous_polygon(std::vector<int> points, std::vector<std::vector<Vertex> > cur_list);
+
+        void output_polygons(const std::vector<std::vector<std::pair<int, int> > > &polygons);
 
     public:
         Graph() : vertex_number(0), edges_number(0)
@@ -63,14 +83,20 @@ namespace graph_space
         };
 
         void input_graph(std::string file_name);
+
         void pre_processing();
+
         std::vector<int> find_point(TPoint x);
 
         void create_triangulation_tree();
 
         void output_point_indexes(std::vector<int> indexes);
+
         void output();
+
         void output_adjacency_list();
+
+        void output_triangulation_list(int index);
     };
 }
 
