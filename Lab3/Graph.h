@@ -90,6 +90,12 @@ namespace graph_space
         int count_triangles(int layer_id);
         void first_layer();
         void next_layer(int layer_id);
+        //connect layers
+        std::vector<int> get_difference(int layer_id);
+        void layers_connection(int layer_id);
+
+        std::pair<int, int> get_bounds(const std::vector<int>& polygon, int center, int start_v, int end_v, int layer_id);
+        int check_in_triangle(TTreeVertex triangle, int layer, int vertex);
 
     public:
         Graph() : vertex_number(0), edges_number(0)

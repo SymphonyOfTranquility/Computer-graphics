@@ -146,6 +146,24 @@ namespace graph_space
             next_layer(layer);
             ++layer;
         }
+//        for (int i = 0;i < triangulation_tree.size(); ++i)
+//        {
+//            std::sort(triangulation_tree[i].begin(), triangulation_tree[i].end(),
+//                    [](const TTreeVertex &a, const TTreeVertex &b)->bool
+//            {
+//                for (int i = 0;i < 3;++i)
+//                {
+//                    if (a.vertex_id[i] < b.vertex_id[i])
+//                        return true;
+//                    if (a.vertex_id[i] > b.vertex_id[i])
+//                        return false;
+//                }
+//            });
+//        }
+
+        output_all_triangulation_layers();
+        for (int i = 0;i < triangulation_lists.size()-1; ++i)
+            layers_connection(i);
     }
 
     int Graph::get_side_dot(int side)
@@ -805,9 +823,18 @@ namespace graph_space
         for (int i = 0;i < triangulation_tree[index].size(); ++i)
         {
             TTreeVertex v = triangulation_tree[index][i];
-            std::cout << triangulation_vertexes[index][v.vertex_id[0]] << ' '
+            std::cout << i << ": " <<  triangulation_vertexes[index][v.vertex_id[0]] << ' '
                 << triangulation_vertexes[index][v.vertex_id[1]] << ' '
-                << triangulation_vertexes[index][v.vertex_id[2]] << '\n';
+                << triangulation_vertexes[index][v.vertex_id[2]];
+            if (triangulation_tree[index][i].next_ids.size() > 0)
+            {
+                std::cout << " ::: ";
+                for (int j = 0; j < triangulation_tree[index][i].next_ids.size(); ++j)
+                {
+                    std::cout << triangulation_tree[index][i].next_ids[j] << ' ';
+                }
+            }
+            std::cout << '\n';
         }
         std::cout << '\n';
     }
@@ -819,6 +846,192 @@ namespace graph_space
             std::cout << "Layer : " << i << '\n';
             output_triangles(i);
         }
+    }
+
+    void Graph::layers_connection(int layer_id)
+    {
+        std::cout << "Nya : " << layer_id << '\n';
+        output_triangles(layer_id);
+        int next_layer_id = layer_id+1;
+        std::vector<int> difference = get_difference(layer_id);
+        std::vector<int> cur_points = triangulation_vertexes[layer_id], next_points = triangulation_vertexes[next_layer_id];
+        std::vector<int> interception(cur_points.size());
+        std::vector<int> back_interception(cur_points.size() - difference.size());
+        for (int i = 0, k = 0;i < cur_points.size(); ++i)
+        {
+            if (cur_points[i] != next_points[k])
+                interception[i] = -1;
+            else
+            {
+                interception[i] = k;
+                back_interception[k] = i;
+                ++k;
+            }
+        }
+        for (int i = 0, dif = 0;i < cur_points.size(); ++i)
+        {
+            if (dif >= difference.size() || cur_points[i] != difference[dif])
+                continue;
+            ++dif;
+            std::vector<int> polygon, triangle_ids;
+            for (int j = 0; j < triangulation_lists[layer_id][i].size(); ++j)
+            {
+                polygon.push_back(triangulation_lists[layer_id][i][j].next_v);
+                triangle_ids.push_back(triangulation_lists[layer_id][i][j].triangle_id);
+            }
+            std::vector<int> sorted_by_ind_polygon = polygon;
+            std::sort(sorted_by_ind_polygon.begin(), sorted_by_ind_polygon.end());
+
+            for (int j = 0; j < sorted_by_ind_polygon.size(); ++j)
+            {
+                int cur_v = interception[sorted_by_ind_polygon[j]];
+                if (cur_v == -1)
+                    continue;
+                for (int k = 0; k < triangulation_lists[next_layer_id][cur_v].size(); ++k)
+                {
+                    int next_v = triangulation_lists[next_layer_id][cur_v][k].next_v;
+                    auto pos = std::lower_bound(sorted_by_ind_polygon.begin(), sorted_by_ind_polygon.end(),
+                                                back_interception[next_v]);
+                    if (pos == sorted_by_ind_polygon.end() || *pos != back_interception[next_v] || next_v < cur_v)
+                        continue;
+
+                    int triangle_id = triangulation_lists[next_layer_id][cur_v][k].triangle_id;
+                    TTreeVertex triangle = triangulation_tree[next_layer_id][triangle_id];
+                    int last_v = triangle.vertex_id[0];
+                    if (cur_v == last_v || next_v == last_v)
+                        last_v = triangle.vertex_id[1];
+                    if (cur_v == last_v || next_v == last_v)
+                        last_v = triangle.vertex_id[2];
+                    pos = std::lower_bound(sorted_by_ind_polygon.begin(), sorted_by_ind_polygon.end(),
+                                           back_interception[last_v]);
+                    if (pos == sorted_by_ind_polygon.end() || *pos != back_interception[last_v])
+                        continue;
+                    std::pair<int, int> zero_triangles = get_bounds(polygon, i, triangle.vertex_id[0], triangle.vertex_id[2], layer_id);
+                    std::pair<int, int> first_triangles = get_bounds(polygon, i, triangle.vertex_id[1], triangle.vertex_id[2], layer_id);
+                    std::pair<int, int> second_triangles = get_bounds(polygon, i, triangle.vertex_id[0], triangle.vertex_id[1], layer_id);
+
+                    std::vector<int> temp1(0), temp2(0), temp3(0), temp4(0);
+                    triangle.next_ids.clear();
+                    for (int v = zero_triangles.first; v != zero_triangles.second; v = (v+1)%polygon.size())
+                        temp1.push_back(triangle_ids[v]);
+                    for (int v = first_triangles.first; v != first_triangles.second; v = (v+1)%polygon.size())
+                        temp2.push_back(triangle_ids[v]);
+                    for (int v = second_triangles.first; v != second_triangles.second; v = (v+1)%polygon.size())
+                        temp3.push_back(triangle_ids[v]);
+
+                    std::sort(temp1.begin(), temp1.end());
+                    std::sort(temp2.begin(), temp2.end());
+                    std::sort(temp3.begin(), temp3.end());
+                    std::set_union(temp1.begin(), temp1.end(), temp2.begin(), temp2.end(),
+                            std::back_inserter(temp4));
+
+                    std::sort(temp4.begin(), temp4.end());
+                    std::set_union(temp4.begin(), temp4.end(), temp3.begin(), temp3.end(),
+                            std::back_inserter(triangle.next_ids));
+
+                    triangulation_tree[next_layer_id][triangle_id] = triangle;
+                }
+            }
+        }
+    }
+
+    std::vector<int> Graph::get_difference(int layer_id)
+    {
+        std::vector<int> cur_points = triangulation_vertexes[layer_id], next_points = triangulation_vertexes[layer_id+1];
+        std::vector<int> difference(cur_points);
+        difference.insert(difference.end(), next_points.begin(), next_points.end());
+        std::sort(difference.begin(), difference.end());
+        std::vector<int> temp;
+        for (int i = 0;i < difference.size()-1; ++i)
+        {
+            if (difference[i] != difference[i+1])
+                temp.push_back(difference[i]);
+            else
+                ++i;
+        }
+        return temp;
+    }
+
+    int Graph::check_in_triangle(TTreeVertex triangle, int layer, int vertex)
+    {
+        TPoint a = vertexes[triangulation_vertexes[layer+1][triangle.vertex_id[0]]];
+        TPoint b = vertexes[triangulation_vertexes[layer+1][triangle.vertex_id[1]]];
+        TPoint c = vertexes[triangulation_vertexes[layer+1][triangle.vertex_id[2]]];
+        TPoint p = vertexes[triangulation_vertexes[layer][vertex]];
+        double angle_a = get_angle(a, b, c), angle_point_a = get_angle(a, p, c);
+        double angle_b = get_angle(b, c, a), angle_point_b = get_angle(b, p, a);
+        double angle_c = get_angle(c, a, b), angle_point_c = get_angle(c, p, b);
+        double eps = 0.00001;
+        if (std::abs(angle_a - angle_point_a) < eps)
+            return 1;
+        if (std::abs(angle_b - angle_point_b) < eps)
+            return 2;
+        if (std::abs(angle_c - angle_point_c) < eps)
+            return 3;
+        if (angle_a*angle_point_a > 0 && angle_b*angle_point_b > 0 && angle_c*angle_point_c > 0)
+            return 0;
+        return -1;
+    }
+
+    std::pair<int, int> Graph::get_bounds(const std::vector<int>& polygon, int center, int start_v, int end_v, int layer_id)
+    {
+        TPoint a = vertexes[triangulation_vertexes[layer_id+1][start_v]];
+        TPoint b = vertexes[triangulation_vertexes[layer_id+1][end_v]];
+        TPoint c = vertexes[triangulation_vertexes[layer_id][center]];
+        double eps = 0.000001;
+        double temp_angle = get_angle(a, b, c);
+        if (temp_angle < 0)
+            std::swap(start_v, end_v);
+
+
+        auto compare = [polygon, layer_id, center, this](int mid, int find)-> int
+        {
+            TPoint find_p = vertexes[triangulation_vertexes[layer_id+1][find]];
+            TPoint center_p = vertexes[triangulation_vertexes[layer_id][center]];
+            TPoint mid_p = vertexes[triangulation_vertexes[layer_id][polygon[mid]]];
+            TPoint temp_p = {center_p.x-2*(center_p.x), center_p.y};
+            double angle1 = get_angle(temp_p, find_p, center_p);
+            double angle2 = get_angle(temp_p, mid_p, center_p);
+            if (angle1 < 0)
+                angle1 = std::abs(angle1);
+            else
+                angle1 = 360.0 - angle1;
+            if (angle2 < 0)
+                angle2 = std::abs(angle2);
+            else
+                angle2 = 360.0 - angle2;
+            double eps = 0.0000001;
+            if (std::abs(angle1-angle2) < eps)
+                return 0;
+            if (angle1 > angle2)
+                return 1;
+            else
+                return -1;
+        };
+        std::pair<int, int> ans(-1, -1);
+        int l = -1, r = polygon.size();
+        while (r - l > 1)
+        {
+            int mid = (r+l)/2;
+            if (compare(mid, start_v) > 0)
+                r = mid;
+            else
+                l = mid;
+        }
+        ans.first = (r+polygon.size())%polygon.size();
+
+        l = -1, r = polygon.size();
+        while (r - l > 1)
+        {
+            int mid = (r+l)/2;
+            if (compare(mid, end_v) > 0)
+                r = mid;
+            else
+                l = mid;
+        }
+        ans.second = (r+polygon.size())%polygon.size();
+
+        return ans;
     }
 
 }
