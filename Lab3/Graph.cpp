@@ -933,6 +933,48 @@ namespace graph_space
                 }
             }
         }
+        std::vector<std::pair<TTreeVertex, std::pair<int, int> > > all_unused;
+        for (int i = 0;i < triangulation_tree[next_layer_id].size(); ++i)
+            if (triangulation_tree[next_layer_id][i].next_ids.empty())
+                all_unused.push_back({triangulation_tree[next_layer_id][i], {i, next_layer_id}});
+        for (int i = 0;i < triangulation_tree[layer_id].size(); ++i)
+            all_unused.push_back({triangulation_tree[layer_id][i], {i, layer_id}});
+
+        std::sort(all_unused.begin(), all_unused.end(),
+                [this](const std::pair<TTreeVertex, std::pair<int, int> > &a,
+                        std::pair<TTreeVertex, std::pair<int, int> > &b) -> bool
+                        {
+                            int a_layer = a.second.second, b_layer = b.second.second;
+                            int a_index = a.second.first, b_index = b.second.first;
+                            TTreeVertex a_triang = a.first, b_triang = b.first;
+                            for (int i = 0;i < 3; ++i)
+                            {
+                                if (triangulation_vertexes[a_layer][a_triang.vertex_id[i]] <
+                                    triangulation_vertexes[b_layer][b_triang.vertex_id[i]])
+                                    return true;
+                                if (triangulation_vertexes[a_layer][a_triang.vertex_id[i]] >
+                                    triangulation_vertexes[b_layer][b_triang.vertex_id[i]])
+                                    return false;
+                            }
+                            return a_layer > b_layer;
+                        });
+
+        for (int i = 0;i < all_unused.size()-1; ++i)
+        {
+            int layer = all_unused[i].second.second;
+            int next_layer = all_unused[i+1].second.second;
+            TTreeVertex current_triag = all_unused[i].first, next_triag = all_unused[i+1].first;;
+            if (triangulation_vertexes[layer][current_triag.vertex_id[0]] ==
+                    triangulation_vertexes[next_layer][next_triag.vertex_id[0]] &&
+                triangulation_vertexes[layer][current_triag.vertex_id[1]] ==
+                    triangulation_vertexes[next_layer][next_triag.vertex_id[1]]  &&
+                triangulation_vertexes[layer][current_triag.vertex_id[2]] ==
+                    triangulation_vertexes[next_layer][next_triag.vertex_id[2]] )
+            {
+                triangulation_tree[layer][all_unused[i].second.first].next_ids.
+                    push_back(all_unused[i+1].second.first);
+            }
+        }
     }
 
     std::vector<int> Graph::get_difference(int layer_id)
