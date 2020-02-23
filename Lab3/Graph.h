@@ -32,6 +32,14 @@ namespace graph_space
         TEdge(int v1, int v2, bool used) : v1(v1), v2(v2), used(used) {};
     };
 
+    struct TTreeVertex
+    {
+        int vertex_id[3];
+        std::vector<int> next_ids;
+
+        TTreeVertex() { vertex_id[0] = vertex_id[1] = vertex_id[2] = -1; next_ids.clear(); };
+    };
+
     class Graph
     {
         enum VType
@@ -49,11 +57,13 @@ namespace graph_space
         int vertex_number, edges_number;
         std::vector<std::vector<std::vector<Vertex> > > triangulation_lists;
         std::vector<std::vector<int> > triangulation_vertexes;
+        std::vector<std::vector<TTreeVertex> > triangulation_tree;
 
         std::vector<int> sort_points();
 
         double get_angle(TPoint a, TPoint b, TPoint u);
 
+        // this part get triangles from graph
         int get_side_dot(int side); //-1 - left, 1 right
         void add_triangle();
 
@@ -76,6 +86,11 @@ namespace graph_space
 
         void output_polygons(const std::vector<std::vector<std::pair<int, int> > > &polygons);
 
+        // get next layer of triangles
+        int count_triangles(int layer_id);
+        void first_layer();
+        void next_layer(int layer_id);
+
     public:
         Graph() : vertex_number(0), edges_number(0)
         {
@@ -90,13 +105,14 @@ namespace graph_space
 
         void create_triangulation_tree();
 
+
+        // all outputs
         void output_point_indexes(std::vector<int> indexes);
-
         void output();
-
         void output_adjacency_list();
-
         void output_triangulation_list(int index);
+        void output_triangulation_vertexes(int index);
+        void output_all_triangulation_layers();
     };
 }
 

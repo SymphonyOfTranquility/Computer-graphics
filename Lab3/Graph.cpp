@@ -139,19 +139,13 @@ namespace graph_space
 
     void Graph::create_triangulation_tree()
     {
-        add_triangle();
-        std::vector<int> indeces;
-        for (int i = 0;i < vertex_number; ++i)
-            indeces.push_back(i);
-
-        triangulation_vertexes.push_back(indeces);
-        triangulation_lists.push_back(adjacency_list);
-        sort_counter_clockwise(indeces, triangulation_lists[0]);
-
-        std::vector<TEdge> new_edges = create_monotonous_polygon(triangulation_vertexes[0], triangulation_lists[0]);
-        add_new_edges(triangulation_lists[0], new_edges);
-        triangulate(triangulation_vertexes[0], triangulation_lists[0]);
-
+        first_layer();
+        int layer = 0;
+        while (triangulation_lists[layer].size() > 3)
+        {
+            next_layer(layer);
+            ++layer;
+        }
     }
 
     int Graph::get_side_dot(int side)
@@ -380,7 +374,7 @@ namespace graph_space
 
                     tree.erase(cur_edge);
                 }
-                cur_edges.emplace_back(i, vertexes.size()-1, false);
+                cur_edges.emplace_back(i, points.size()-1, false);
                 std::set<int>::iterator it_low = tree.lower_bound(cur_edges.size()-1);
                 int cur_edge = *it_low;
                 if (it_low == tree.begin())
@@ -408,7 +402,7 @@ namespace graph_space
                         tree.erase(cur_edge);
                     }
                 }
-                cur_edges.emplace_back(i, vertexes.size()-1, false);
+                cur_edges.emplace_back(i, points.size()-1, false);
                 std::set<int>::iterator it_low = tree.lower_bound(cur_edges.size()-1);
                 int cur_edge = *it_low;
                 if (it_low == tree.begin())
@@ -433,6 +427,7 @@ namespace graph_space
                 }
             }
         }
+        vertexes.pop_back();
         return new_edges;
     }
 
@@ -448,16 +443,16 @@ namespace graph_space
 
     void Graph::output_triangulation_list(int index)
     {
-        std::cout << '\n';
         for (int i = 0;i < triangulation_vertexes[index].size(); ++i)
         {
-            std::cout << i << " : ";
+            std::cout << triangulation_vertexes[index][i] << " : ";
             for (auto & item : triangulation_lists[index][i])
             {
-                std::cout << item.next_v << ", ";
+                std::cout << triangulation_vertexes[index][item.next_v] << ", ";
             }
             std::cout << '\n';
         }
+        std::cout << '\n';
     }
 
     void Graph::triangulate(const std::vector<int> &points, std::vector<std::vector<Vertex> > &cur_list)
@@ -654,4 +649,152 @@ namespace graph_space
             return false;
         return (angle < 0 && vertex_side == 1) || (angle > 0 && vertex_side == 2);
     }
+
+    void Graph::next_layer(int layer_id)
+    {
+        int triangles_number = count_triangles(layer_id);
+        std::vector<int> points = triangulation_vertexes[layer_id];
+        std::vector<std::pair<int, int> > number_of_adjacency;
+        for (int i = 0; i < points.size(); ++i)
+            number_of_adjacency.emplace_back(triangulation_lists[layer_id][i].size(), i);
+        std::sort(number_of_adjacency.begin(), number_of_adjacency.end(), std::greater<>());
+        std::vector<std::vector<Vertex> > new_list;
+        std::vector<int> new_points;
+        std::vector<int> vertexes_to_delete;
+        std::vector<bool> used(points.size(), false);
+        for (auto & i : number_of_adjacency)
+        {
+            int cur_v = i.second;
+            if (cur_v != 0 && cur_v != 1 && cur_v != points.size()-1 && !used[cur_v])
+            {
+                vertexes_to_delete.push_back(cur_v);
+                used[cur_v] = true;
+                for (int j = 0; j < triangulation_lists[layer_id][cur_v].size(); ++j)
+                    used[triangulation_lists[layer_id][cur_v][j].next_v] = true;
+            }
+        }
+        sort(vertexes_to_delete.begin(), vertexes_to_delete.end());
+        std::vector<int> interception(points.size());
+        for (int j = 0, k = 0;j < points.size(); ++j)
+        {
+            if (k < vertexes_to_delete.size() && points[vertexes_to_delete[k]] == points[j])
+            {
+                ++k;
+                interception[j] = -1;
+            } else{
+                interception[j] = new_points.size();
+                new_points.push_back(points[j]);
+            }
+        }
+        new_list.resize(points.size()-vertexes_to_delete.size());
+        for (int i = 0;i < triangulation_lists[layer_id].size(); ++i)
+        {
+            if (interception[i] != -1)
+            {
+                for (int j = 0;j < triangulation_lists[layer_id][i].size(); ++j)
+                {
+                    int next_v = triangulation_lists[layer_id][i][j].next_v;
+                    if (interception[next_v] != -1)
+                    {
+                        if (interception[next_v] > interception[i])
+                        {
+                            int new_next_v = interception[next_v], new_cur_v = interception[i];
+                            std::shared_ptr<int> id = std::make_shared<int>(-1);
+                            new_list[new_cur_v].emplace_back(new_next_v, id);
+                            new_list[new_next_v].emplace_back(new_cur_v, id);
+                        }
+                    }
+                }
+            }
+        }
+        //triangulation
+
+        ++layer_id;
+        triangulation_vertexes.push_back(new_points);
+        triangulation_lists.push_back(new_list);
+        sort_counter_clockwise(triangulation_vertexes[layer_id], triangulation_lists[layer_id]);
+
+        std::vector<TEdge> new_edges = create_monotonous_polygon(triangulation_vertexes[layer_id],
+                triangulation_lists[layer_id]);
+        add_new_edges(triangulation_lists[layer_id], new_edges);
+        triangulate(triangulation_vertexes[layer_id], triangulation_lists[layer_id]);
+    }
+
+    int Graph::count_triangles(int layer_id)
+    {
+        sort_counter_clockwise(triangulation_vertexes[layer_id], triangulation_lists[layer_id]);
+        int size = triangulation_vertexes[layer_id].size();
+        std::vector<TTreeVertex> layer;
+        for (int start_v = 0; start_v < size; ++start_v)
+        {
+            for (int j = 0;j < triangulation_lists[layer_id][start_v].size(); ++j)
+            {
+                if (triangulation_lists[layer_id][start_v][j].triangle_id != -1)
+                    continue;
+                triangulation_lists[layer_id][start_v][j].triangle_id = layer.size();
+                TTreeVertex cur_triangle;
+                int next_v = triangulation_lists[layer_id][start_v][j].next_v;
+                cur_triangle.vertex_id[0] = start_v;
+                cur_triangle.vertex_id[1] = next_v;
+                for (int i = 0;i < triangulation_lists[layer_id][next_v].size(); ++i)
+                {
+                    if (triangulation_lists[layer_id][next_v][i].next_v == start_v)
+                    {
+                        int next_v_size = triangulation_lists[layer_id][next_v].size();
+                        cur_triangle.vertex_id[2] = triangulation_lists[layer_id][next_v][(i+1)%next_v_size].next_v;
+                        triangulation_lists[layer_id][next_v][(i+1)%next_v_size].triangle_id = layer.size();
+                        break;
+                    }
+                }
+                int cur_v = next_v; next_v = cur_triangle.vertex_id[2];
+                for (int i = 0;i < triangulation_lists[layer_id][next_v].size(); ++i)
+                {
+                    if (triangulation_lists[layer_id][next_v][i].next_v == cur_v)
+                    {
+                        int next_v_size = triangulation_lists[layer_id][next_v].size();
+                        triangulation_lists[layer_id][next_v][(i+1)%next_v_size].triangle_id = layer.size();
+                        break;
+                    }
+                }
+                layer.push_back(cur_triangle);
+            }
+        }
+        triangulation_tree.push_back(layer);
+        return layer.size();
+    }
+
+    void Graph::first_layer()
+    {
+        add_triangle();
+        std::vector<int> indeces;
+        for (int i = 0;i < vertex_number; ++i)
+            indeces.push_back(i);
+
+        triangulation_vertexes.push_back(indeces);
+        triangulation_lists.push_back(adjacency_list);
+        sort_counter_clockwise(indeces, triangulation_lists[0]);
+
+        std::vector<TEdge> new_edges = create_monotonous_polygon(triangulation_vertexes[0], triangulation_lists[0]);
+        add_new_edges(triangulation_lists[0], new_edges);
+        triangulate(triangulation_vertexes[0], triangulation_lists[0]);
+    }
+
+
+    void Graph::output_triangulation_vertexes(int index)
+    {
+        for (int i = 0;i < triangulation_vertexes[index].size(); ++i)
+            std::cout << triangulation_vertexes[index][i] << ' ';
+        std::cout << '\n';
+    }
+
+    void Graph::output_all_triangulation_layers()
+    {
+        for (int i = 0;i < triangulation_lists.size(); ++i)
+        {
+            std::cout << "Layer : " << i << '\n';
+            output_triangulation_vertexes(i);
+            output_triangulation_list(i);
+        }
+    }
+
 }

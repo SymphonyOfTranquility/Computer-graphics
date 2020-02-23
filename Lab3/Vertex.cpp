@@ -12,6 +12,7 @@ namespace graph_space
         edge_id = v.edge_id;
         next_v = v.next_v;
         used = v.used;
+        triangle_id = v.triangle_id;
     }
 
     Vertex& Vertex::operator=(const Vertex &v) noexcept
@@ -21,6 +22,7 @@ namespace graph_space
         edge_id = v.edge_id;
         next_v = v.next_v;
         used = v.used;
+        triangle_id = v.triangle_id;
         return *this;
     }
 
@@ -29,6 +31,7 @@ namespace graph_space
         next_v = v.next_v;
         edge_id = std::exchange(v.edge_id, nullptr);
         used = v.used;
+        triangle_id = v.triangle_id;
     }
 
     Vertex &Vertex::operator=(Vertex &&v) noexcept
@@ -38,6 +41,7 @@ namespace graph_space
         next_v = v.next_v;
         edge_id = std::exchange(v.edge_id, nullptr);
         used = v.used;
+        triangle_id = v.triangle_id;
         return *this;
     }
 
