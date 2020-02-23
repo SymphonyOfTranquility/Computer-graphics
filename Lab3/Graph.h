@@ -95,7 +95,7 @@ namespace graph_space
         void layers_connection(int layer_id);
 
         std::pair<int, int> get_bounds(const std::vector<int>& polygon, int center, int start_v, int end_v, int layer_id);
-        int check_in_triangle(TTreeVertex triangle, int layer, int vertex);
+        int check_in_triangle(TTreeVertex triangle, int layer, TPoint vertex);
 
     public:
         Graph() : vertex_number(0), edges_number(0)
@@ -107,13 +107,13 @@ namespace graph_space
 
         void pre_processing();
 
-        std::vector<int> find_point(TPoint x);
+        std::vector<TTreeVertex> find_point(TPoint x);
 
         void create_triangulation_tree();
 
 
         // all outputs
-        void output_point_indexes(std::vector<int> indexes);
+        void output_point_indexes(std::vector<TTreeVertex> indexes);
         void output();
         void output_adjacency_list();
         void output_triangulation_list(int index);

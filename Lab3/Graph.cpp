@@ -99,18 +99,59 @@ namespace graph_space
         }
     }
 
-    std::vector<int> Graph::find_point(TPoint x)
+    std::vector<TTreeVertex> Graph::find_point(TPoint x)
     {
-        return std::vector<int>();
+        int layer = triangulation_tree.size()-1;
+        std::vector<int> current_triangles;
+        if (triangulation_tree[layer][0].vertex_id[1] != 1)
+            current_triangles.push_back(0);
+        else
+            current_triangles.push_back(1);
+        std::vector<TTreeVertex> ans;
+        bool ok;
+        while (layer >= 0)
+        {
+            ok = false;
+            for (int i = 0;i < current_triangles.size(); ++i)
+            {
+                int cur_v = current_triangles[i];
+                if (check_in_triangle(triangulation_tree[layer][cur_v], layer, x) > -1)
+                {
+                    ans.push_back(triangulation_tree[layer][cur_v]);
+                    current_triangles.clear();
+                    current_triangles = triangulation_tree[layer][cur_v].next_ids;
+                    --layer;
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok)
+                break;
+        }
+        if (!ok)
+            return std::vector<TTreeVertex>();
+        else
+            return ans;
     }
 
-    void Graph::output_point_indexes(std::vector<int> indexes)
+    void Graph::output_point_indexes(std::vector<TTreeVertex> indexes)
     {
+        if (indexes.empty())
+        {
+            std::cout << "Point is out of the biggest triangle.\n";
+            return;
+        }
+        int num_of_layers = triangulation_tree.size();
         for (int i = 0;i < indexes.size(); ++i)
-            std::cout << indexes[i] << ' ';
+        {
+            std::cout << "Layer #" << num_of_layers-i << '\n';
+            std::cout << triangulation_vertexes[num_of_layers-1-i][indexes[i].vertex_id[0]] << ' '
+                      << triangulation_vertexes[num_of_layers-1-i][indexes[i].vertex_id[1]] << ' '
+                      << triangulation_vertexes[num_of_layers-1-i][indexes[i].vertex_id[2]];
+            if (i+1 < indexes.size())
+                std::cout << "\n\t↓\n";
+        }
         std::cout << '\n';
-        for (int i = 0;i < indexes.size(); ++i)
-            std::cout << vertexes[indexes[i]].x << ' ' << vertexes[indexes[i]].y << '\n';
     }
 
     void Graph::output()
@@ -146,20 +187,6 @@ namespace graph_space
             next_layer(layer);
             ++layer;
         }
-//        for (int i = 0;i < triangulation_tree.size(); ++i)
-//        {
-//            std::sort(triangulation_tree[i].begin(), triangulation_tree[i].end(),
-//                    [](const TTreeVertex &a, const TTreeVertex &b)->bool
-//            {
-//                for (int i = 0;i < 3;++i)
-//                {
-//                    if (a.vertex_id[i] < b.vertex_id[i])
-//                        return true;
-//                    if (a.vertex_id[i] > b.vertex_id[i])
-//                        return false;
-//                }
-//            });
-//        }
 
         output_all_triangulation_layers();
         for (int i = 0;i < triangulation_lists.size()-1; ++i)
@@ -792,11 +819,9 @@ namespace graph_space
         triangulation_vertexes.push_back(indeces);
         triangulation_lists.push_back(adjacency_list);
         sort_counter_clockwise(indeces, triangulation_lists[0]);
-
         std::vector<TEdge> new_edges = create_monotonous_polygon(triangulation_vertexes[0], triangulation_lists[0]);
         add_new_edges(triangulation_lists[0], new_edges);
         triangulate(triangulation_vertexes[0], triangulation_lists[0]);
-
         int triangles_number = count_triangles(0);
     }
 
@@ -935,8 +960,7 @@ namespace graph_space
         }
         std::vector<std::pair<TTreeVertex, std::pair<int, int> > > all_unused;
         for (int i = 0;i < triangulation_tree[next_layer_id].size(); ++i)
-            if (triangulation_tree[next_layer_id][i].next_ids.empty())
-                all_unused.push_back({triangulation_tree[next_layer_id][i], {i, next_layer_id}});
+            all_unused.push_back({triangulation_tree[next_layer_id][i], {i, next_layer_id}});
         for (int i = 0;i < triangulation_tree[layer_id].size(); ++i)
             all_unused.push_back({triangulation_tree[layer_id][i], {i, layer_id}});
 
@@ -971,6 +995,7 @@ namespace graph_space
                 triangulation_vertexes[layer][current_triag.vertex_id[2]] ==
                     triangulation_vertexes[next_layer][next_triag.vertex_id[2]] )
             {
+                triangulation_tree[layer][all_unused[i].second.first].next_ids.clear();
                 triangulation_tree[layer][all_unused[i].second.first].next_ids.
                     push_back(all_unused[i+1].second.first);
             }
@@ -994,24 +1019,38 @@ namespace graph_space
         return temp;
     }
 
-    int Graph::check_in_triangle(TTreeVertex triangle, int layer, int vertex)
+    int Graph::check_in_triangle(TTreeVertex triangle, int layer, TPoint vertex)
     {
-        TPoint a = vertexes[triangulation_vertexes[layer+1][triangle.vertex_id[0]]];
-        TPoint b = vertexes[triangulation_vertexes[layer+1][triangle.vertex_id[1]]];
-        TPoint c = vertexes[triangulation_vertexes[layer+1][triangle.vertex_id[2]]];
-        TPoint p = vertexes[triangulation_vertexes[layer][vertex]];
+        TPoint a = vertexes[triangulation_vertexes[layer][triangle.vertex_id[0]]];
+        TPoint b = vertexes[triangulation_vertexes[layer][triangle.vertex_id[1]]];
+        TPoint c = vertexes[triangulation_vertexes[layer][triangle.vertex_id[2]]];
+        double eps = 0.000001;
+        if (a.y < b.y || (std::abs(a.y-b.y) < eps && a.x < b.x))
+            std::swap(a, b);
+        if (a.y < c.y || (std::abs(c.y-a.y) < eps && a.x < c.x))
+            std::swap(a, c);
+        if (b.y < c.y || (std::abs(b.y-c.y) < eps && b.x < c.x))
+            std::swap(b, c);
+        TPoint p = vertex;
         double angle_a = get_angle(a, b, c), angle_point_a = get_angle(a, p, c);
-        double angle_b = get_angle(b, c, a), angle_point_b = get_angle(b, p, a);
-        double angle_c = get_angle(c, a, b), angle_point_c = get_angle(c, p, b);
-        double eps = 0.00001;
-        if (std::abs(angle_a - angle_point_a) < eps)
-            return 1;
-        if (std::abs(angle_b - angle_point_b) < eps)
-            return 2;
-        if (std::abs(angle_c - angle_point_c) < eps)
-            return 3;
+        double angle_b = get_angle(b, a, c), angle_point_b = get_angle(b, p, c);
+        double angle_c = get_angle(a, c, b), angle_point_c = get_angle(a, p, b);
         if (angle_a*angle_point_a > 0 && angle_b*angle_point_b > 0 && angle_c*angle_point_c > 0)
             return 0;
+        if (std::abs(angle_point_a) < eps && angle_b*angle_point_b > 0 && angle_c*angle_point_c > 0)
+            return 1;
+        if (std::abs(angle_point_b) < eps && angle_a*angle_point_a > 0 && angle_c*angle_point_c > 0)
+            return 1;
+        if (std::abs(angle_point_c) < eps && angle_a*angle_point_a > 0 && angle_b*angle_point_b > 0)
+            return 1;
+        if (std::abs(angle_point_a) < eps && std::abs(angle_point_b) < eps && angle_c*angle_point_c > 0)
+            return 1;
+        if (std::abs(angle_point_b) < eps && angle_a*angle_point_a > 0 && std::abs(angle_point_c) < eps)
+            return 1;
+        if (std::abs(angle_point_c) < eps && std::abs(angle_point_a) < eps && angle_b*angle_point_b > 0)
+            return 1;
+        if (angle_a*angle_point_a < 0 || angle_b*angle_point_b < 0 || angle_c*angle_point_c < 0)
+            return -1;
         return -1;
     }
 
@@ -1075,5 +1114,4 @@ namespace graph_space
 
         return ans;
     }
-
 }
