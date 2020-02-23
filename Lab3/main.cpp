@@ -14,7 +14,7 @@ int main()
     graph.output_adjacency_list();
 
     graph.output_all_triangulation_layers();
-
+    graph.output_tree();
     std::vector<int> region = graph.find_point(graph_space::TPoint(5, 3));
     graph.output_point_indexes(region);
 

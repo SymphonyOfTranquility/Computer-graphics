@@ -652,7 +652,6 @@ namespace graph_space
 
     void Graph::next_layer(int layer_id)
     {
-        int triangles_number = count_triangles(layer_id);
         std::vector<int> points = triangulation_vertexes[layer_id];
         std::vector<std::pair<int, int> > number_of_adjacency;
         for (int i = 0; i < points.size(); ++i)
@@ -718,6 +717,8 @@ namespace graph_space
                 triangulation_lists[layer_id]);
         add_new_edges(triangulation_lists[layer_id], new_edges);
         triangulate(triangulation_vertexes[layer_id], triangulation_lists[layer_id]);
+
+        int triangles_number = count_triangles(layer_id);
     }
 
     int Graph::count_triangles(int layer_id)
@@ -777,6 +778,8 @@ namespace graph_space
         std::vector<TEdge> new_edges = create_monotonous_polygon(triangulation_vertexes[0], triangulation_lists[0]);
         add_new_edges(triangulation_lists[0], new_edges);
         triangulate(triangulation_vertexes[0], triangulation_lists[0]);
+
+        int triangles_number = count_triangles(0);
     }
 
 
@@ -794,6 +797,27 @@ namespace graph_space
             std::cout << "Layer : " << i << '\n';
             output_triangulation_vertexes(i);
             output_triangulation_list(i);
+        }
+    }
+
+    void Graph::output_triangles(int index)
+    {
+        for (int i = 0;i < triangulation_tree[index].size(); ++i)
+        {
+            TTreeVertex v = triangulation_tree[index][i];
+            std::cout << triangulation_vertexes[index][v.vertex_id[0]] << ' '
+                << triangulation_vertexes[index][v.vertex_id[1]] << ' '
+                << triangulation_vertexes[index][v.vertex_id[2]] << '\n';
+        }
+        std::cout << '\n';
+    }
+
+    void Graph::output_tree()
+    {
+        for (int i = 0;i < triangulation_tree.size(); ++i)
+        {
+            std::cout << "Layer : " << i << '\n';
+            output_triangles(i);
         }
     }
 

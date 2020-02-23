@@ -113,6 +113,8 @@ namespace graph_space
         void output_triangulation_list(int index);
         void output_triangulation_vertexes(int index);
         void output_all_triangulation_layers();
+        void output_triangles(int index);
+        void output_tree();
     };
 }
 
