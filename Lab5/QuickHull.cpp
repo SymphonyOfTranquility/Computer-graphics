@@ -65,7 +65,7 @@ namespace quickhull_space
         quickhull(min_id, max_id, top);
 
         convex_hull.push_back(max_id);
-        std::vector<int> bottom = get_up(min_id, max_id, cur_vertexes);
+        std::vector<int> bottom = get_up(max_id, min_id, cur_vertexes);
         quickhull(max_id, min_id, bottom);
     }
 
@@ -111,7 +111,7 @@ namespace quickhull_space
     double QuickHull::get_distance(int a_id, int b_id, int u_id)
     {
         TPoint a = vertexes[a_id], b = vertexes[b_id], u = vertexes[u_id];
-        return std::abs((u.x - a.x)*(a.y - b.y) - (u.y - a.y)*(a.x - b.x));
+        return std::abs(((u.x - a.x)*(a.y - b.y) - (u.y - a.y)*(a.x - b.x))/std::sqrt((a.y-b.y)*(a.y-b.y) + (a.x-b.x)*( a.x-b.x)));
     }
 
     void QuickHull::output_convex_hull()
