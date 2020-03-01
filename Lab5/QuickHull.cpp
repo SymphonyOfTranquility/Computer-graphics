@@ -51,13 +51,18 @@ namespace quickhull_space
             {
                 if (vertexes[i].y > vertexes[max_id].y)
                     max_id = i;
+            }
+            else
+            {
+                if (vertexes[i].x > vertexes[max_id].x)
+                    max_id = i;
+            }
+            if (std::abs(vertexes[i].x - vertexes[min_id].x) < eps)
+            {
                 if (vertexes[i].y < vertexes[min_id].y)
                     min_id = i;
-
             }
-            if (vertexes[i].x > vertexes[max_id].x)
-                max_id = i;
-            if (vertexes[i].x < vertexes[max_id].x)
+            else if (vertexes[i].x < vertexes[min_id].x)
                 min_id = i;
         }
         convex_hull.push_back(min_id);
