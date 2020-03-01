@@ -146,7 +146,7 @@ namespace region_tree
     void RegionTree::output_tree()
     {
         int step = 1;
-        for (int i = 0;i < tree.size(); ++i)
+        for (int i = 1;i < tree.size(); ++i)
         {
             if (i%step == 0)
             {
