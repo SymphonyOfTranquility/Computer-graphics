@@ -11,9 +11,7 @@
 
 namespace gift_wrapping_space
 {
-//
-// Created by art on 3/1/20.
-//
+
     void GiftWrapping::input_graph(std::string file_name)
     {
         std::ifstream file;
