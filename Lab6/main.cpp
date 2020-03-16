@@ -1,5 +1,6 @@
 #include <iostream>
 #include "GiftWrapping.h"
+
 int main()
 {
     gift_wrapping_space::GiftWrapping convex_hull;
