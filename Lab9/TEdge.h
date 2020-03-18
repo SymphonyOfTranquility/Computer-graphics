@@ -25,15 +25,15 @@ namespace vor
         TLine(): a(0), b(0),c(0) {};
     };
 
-    class Edge
+    class TEdge
     {
     public:
         std::shared_ptr<TPoint> start, direction, end;
         std::shared_ptr<TPoint> left, right;
         TLine line;
-        std::shared_ptr<Edge> neighbour;
+        std::shared_ptr<TEdge> neighbour;
 
-        Edge(std::shared_ptr<TPoint> start, std::shared_ptr<TPoint> a, std::shared_ptr<TPoint> b)
+        TEdge(std::shared_ptr<TPoint> start, std::shared_ptr<TPoint> a, std::shared_ptr<TPoint> b)
         {
             this->start = start;
             this->left = a;

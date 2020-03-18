@@ -10,11 +10,10 @@
 
 namespace vor
 {
-
     class Lokus
     {
         std::shared_ptr<TPoint> point;
-        std::shared_ptr<Edge> edge;
+        std::shared_ptr<TEdge> edge;
 
         Lokus(std::shared_ptr<TPoint> point)
         {

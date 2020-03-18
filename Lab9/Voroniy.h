@@ -21,6 +21,8 @@ namespace vor
     public:
         Voroniy(){points.clear(), lokuses.clear(), points_number = 0;}
         void input_points(std::string file_name);
+        void fortune_algorithm();
+        std::vector<Lokus> get_lokuses();
     };
 }
 

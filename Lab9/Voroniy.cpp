@@ -5,15 +5,33 @@
 #include <fstream>
 #include "Voroniy.h"
 
-void vor::Voroniy::input_points(std::string file_name)
+namespace vor
 {
-    std::ifstream file;
-    file.open(file_name);
-    file >> points_number;
-    for (int i = 0; i < points_number; ++i)
+
+    void Voroniy::input_points(std::string file_name)
     {
-        std::shared_ptr<TPoint> p = std::make_shared<TPoint>();
-        file >> p->x >> p->y;
-        points.push_back(p);
+        std::ifstream file;
+        file.open(file_name);
+        file >> points_number;
+        for (int i = 0; i < points_number; ++i)
+        {
+            std::shared_ptr<TPoint> p = std::make_shared<TPoint>();
+            file >> p->x >> p->y;
+            points.push_back(p);
+        }
+    }
+
+    void Voroniy::fortune_algorithm()
+    {
+        lokuses.clear();
+        for (int i = 0;i < points_number; ++i)
+        {
+
+        }
+    }
+
+    std::vector<Lokus> Voroniy::get_lokuses()
+    {
+        return lokuses;
     }
 }
