@@ -6,7 +6,7 @@
 #define LAB9_SWEEPEVENT_H
 
 #include "TPoint.h"
-#include "BeachLine.h"
+#include "BeachLineTree.h"
 
 namespace vor
 {
@@ -25,7 +25,7 @@ namespace vor
     struct EdgeIntersectionEvent
     {
         TPoint intersection;
-        std::shared_ptr<BeachLineItem> arc;
+        std::shared_ptr<TreeItem> arc;
         bool is_valid;
     };
 

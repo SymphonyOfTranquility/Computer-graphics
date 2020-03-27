@@ -8,9 +8,12 @@
 #include <cmath>
 #include <memory>
 #include "TPoint.h"
+#include "Lokus.h"
 
 namespace vor
 {
+    struct Lokus;
+
     struct TLine
     {
         double a, b, c;
@@ -29,20 +32,11 @@ namespace vor
     {
     public:
         std::shared_ptr<TPoint> start, direction, end;
-        std::shared_ptr<TPoint> left, right;
+        std::shared_ptr<Lokus> left, right;
         TLine line;
         std::shared_ptr<TEdge> neighbour;
 
-        TEdge(std::shared_ptr<TPoint> start, std::shared_ptr<TPoint> a, std::shared_ptr<TPoint> b)
-        {
-            this->start = start;
-            this->left = a;
-            this->right = b;
-            this->end = nullptr;
-            this->neighbour = nullptr;
-            direction = std::make_shared<TPoint>(b->y - a->y, a->x - b->x);
-            line.set_vals_by_points(*start, {start->x + direction->x, start->y + direction->y});
-        }
+        TEdge(std::shared_ptr<TPoint> center_point, std::shared_ptr<Lokus> a, std::shared_ptr<Lokus> b);
     };
 }
 #endif //LAB9_TEDGE_H

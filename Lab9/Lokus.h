@@ -5,20 +5,23 @@
 #ifndef LAB9_LOKUS_H
 #define LAB9_LOKUS_H
 
+#include <vector>
 #include "TEdge.h"
 #include "TPoint.h"
 
 namespace vor
 {
-    class Lokus
+    class TEdge;
+
+    struct Lokus
     {
         std::shared_ptr<TPoint> point;
-        std::shared_ptr<TEdge> edge;
+        std::vector<std::shared_ptr<TEdge> > edges;
 
         Lokus(std::shared_ptr<TPoint> point)
         {
             this->point = point;
-            edge = nullptr;
+            edges.clear();
         }
     };
 }
