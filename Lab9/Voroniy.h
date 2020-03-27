@@ -24,9 +24,9 @@ namespace vor
     {
         EventType type;
         std::shared_ptr<Lokus> lokus;
-        std::shared_ptr<Lokus> to_delete;
-        SweepEvent(): lokus(nullptr), to_delete(nullptr), type(EventType::None) {};
-        SweepEvent(EventType type, std::shared_ptr<Lokus> lokus):type(type), lokus(lokus), to_delete(nullptr) {};
+        std::vector<std::shared_ptr<Lokus> > to_delete;
+        SweepEvent(): lokus(nullptr), type(EventType::None) { to_delete.clear(); };
+        SweepEvent(EventType type, std::shared_ptr<Lokus> lokus):type(type), lokus(lokus) { to_delete.clear(); };
     };
 
     class Voroniy
@@ -34,11 +34,15 @@ namespace vor
         std::vector<std::shared_ptr<TPoint> > points;
         std::vector<std::shared_ptr<Lokus> > lokuses;
         int points_number;
+        std::shared_ptr<TPoint> get_the_most_bottom_circle_dot(std::shared_ptr<TPoint> z0,
+                                                               std::shared_ptr<TPoint> z1,
+                                                               std::shared_ptr<TPoint> z2);
     public:
         Voroniy(){points.clear(), lokuses.clear(), points_number = 0;}
         void input_points(std::string file_name);
         void fortune_algorithm();
         std::vector<std::shared_ptr<Lokus> > get_lokuses();
+        void output();
     };
 }
 

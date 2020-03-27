@@ -66,7 +66,7 @@ namespace vor
         void del_edge(std::shared_ptr<TreeItem> parent, std::shared_ptr<TreeItem> child_to_del, int pos_to_del);
         void insert_edge(std::shared_ptr<TreeItem> parent, int pos, std::shared_ptr<BeachLineEdge> edge);
 
-        void rec_del(std::shared_ptr<TreeItem> current_root, std::shared_ptr<Lokus> lokus, double sweep_line);
+        void rec_del(std::shared_ptr<TreeItem> current_root, std::vector<std::shared_ptr<Lokus> > lokuses, double sweep_line);
 
         std::shared_ptr<TPoint> get_parabola_line_intersection(std::shared_ptr<TPoint> focus, std::shared_ptr<TPoint> lokus);
 
@@ -89,7 +89,7 @@ namespace vor
     public:
         BeachLineTree():root(nullptr){};
         void add(std::shared_ptr<Lokus> lokus);
-        void del(std::shared_ptr<Lokus> lokus, double sweep_line);
+        void del(std::vector<std::shared_ptr<Lokus> > lokuses, double sweep_line);
         std::vector<std::shared_ptr<Lokus> > get(std::shared_ptr<Lokus> lokus);
     };
 

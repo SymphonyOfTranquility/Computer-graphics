@@ -86,6 +86,9 @@ namespace vor
                 new_right_leaf->parent = parent;
                 new_center_leaf->parent = parent;
 
+                if (current_root->right != nullptr)
+                    current_root->right->left = new_right_leaf;
+
                 new_right_leaf->right = current_root->right;
                 new_center_leaf->right = new_right_leaf;
                 current_root->right = new_center_leaf;
@@ -98,6 +101,9 @@ namespace vor
                 new_leaf->set_arc(lokus);
                 parent->children.insert(parent->children.begin() + root_pos, new_leaf);
                 new_leaf->parent = parent;
+
+                if (current_root->right != nullptr)
+                    current_root->right->left = new_leaf;
 
                 new_leaf->right = current_root->right;
                 current_root->right = new_leaf;
@@ -128,9 +134,9 @@ namespace vor
             }
             if (!update)
                 current_root = rec_add(current_root->children.back(), lokus);
-            if (current_root->children.size() >= 3)
+            if (current_root->children.size() > 3)
             {
-                int middle = int(current_root->children.size()/2);
+                int middle = int(current_root->edges.size()/2);
                 std::shared_ptr<TreeItem> parent = current_root->parent;
                 if (parent == nullptr)
                 {
@@ -157,6 +163,7 @@ namespace vor
                     if (i+1 < current_root->children.size())
                         sibling->edges.push_back(current_root->edges[i]);
                     sibling->children.push_back(current_root->children[i]);
+                    current_root->children[i]->parent = sibling;
                 }
 
                 while (current_root->children.size() > middle + 1)
@@ -167,7 +174,12 @@ namespace vor
                 return parent;
             }
             else
-                return current_root->parent;
+            {
+                if (current_root->parent == nullptr)
+                    return current_root;
+                else
+                    return current_root->parent;
+            }
         }
     }
 
@@ -205,9 +217,9 @@ namespace vor
         return point;
     }
 
-    void BeachLineTree::del(std::shared_ptr<Lokus> lokus, double sweep_line)
+    void BeachLineTree::del(std::vector<std::shared_ptr<Lokus> > lokuses, double sweep_line)
     {
-        rec_del(root, lokus, sweep_line);
+        rec_del(root, lokuses, sweep_line);
     }
 
     EdgeType BeachLineTree::get_position_depend_on_edge(std::shared_ptr<BeachLineEdge> edge, std::shared_ptr<Lokus> lokus)
@@ -231,20 +243,38 @@ namespace vor
                     x1 = std::max(x1, edge->edge->start->x);
             }
             if (lokus->point->x < x1)
-                return EdgeType::RIGHT;
-            else if (x2 < lokus->point->x)
                 return EdgeType::LEFT;
+            else if (x2 < lokus->point->x)
+                return EdgeType::RIGHT;
             else
                 return EdgeType::VERTICAL;
         }
     }
 
-    void BeachLineTree::rec_del(std::shared_ptr<TreeItem> current_root, std::shared_ptr<Lokus> lokus, double sweep_line)
+    void BeachLineTree::rec_del(std::shared_ptr<TreeItem> current_root, std::vector<std::shared_ptr<Lokus> > lokuses, double sweep_line)
     {
         if (current_root->type == ItemType::Arc)
         {
-            if (current_root->lokus != lokus)
+            if (current_root->lokus == lokuses[0] &&
+                current_root->right != nullptr && current_root->right->lokus == lokuses[1] &&
+                current_root->right->right != nullptr && current_root->right->right->lokus == lokuses[2])
+                current_root = current_root->right;
+
+            if (current_root->lokus == lokuses[2] &&
+                current_root->left != nullptr && current_root->left->lokus == lokuses[1] &&
+                current_root->left->left != nullptr && current_root->left->left->lokus == lokuses[0])
+
+                current_root = current_root->left;
+
+            if (!(current_root->lokus == lokuses[1] &&
+                  current_root->right != nullptr && current_root->right->lokus == lokuses[2] &&
+                  current_root->left != nullptr && current_root->left->lokus == lokuses[0]))
                 return;
+
+            if (current_root == nullptr || current_root->lokus != lokuses[1])
+                return;
+
+            std::shared_ptr<Lokus> lokus = lokuses[1];
             std::shared_ptr<TreeItem> parent = current_root->parent;
             std::pair<std::shared_ptr<TreeItem>, std::vector<int> > near_left_struct = get_near(current_root, 1);       //move on the left
             std::pair<std::shared_ptr<TreeItem>, std::vector<int> > near_right_struct = get_near(current_root, -1);     //move on the right
@@ -256,12 +286,12 @@ namespace vor
             std::shared_ptr<Lokus> near_right_lokus = current_root->right->lokus;
             std::shared_ptr<TPoint> intersect_point = get_parabolas_intersection(near_left_lokus, near_right_lokus,
                                                                                  lokus, sweep_line);
-            if (near_left->edges[pos_left]->edge->start != nullptr)
+            if (near_left->edges[pos_left]->edge->start == nullptr)
                 near_left->edges[pos_left]->edge->start = intersect_point;
             else
                 near_left->edges[pos_left]->edge->end = intersect_point;
 
-            if (near_right->edges[pos_right]->edge->start != nullptr)
+            if (near_right->edges[pos_right]->edge->start == nullptr)
                 near_right->edges[pos_right]->edge->start = intersect_point;
             else
                 near_right->edges[pos_right]->edge->end = intersect_point;
@@ -275,7 +305,7 @@ namespace vor
                 top_pos = pos_left;
             } else
             {
-                top_item = near_left;
+                top_item = near_right;
                 top_pos = pos_right;
             }
 
@@ -287,17 +317,9 @@ namespace vor
                 std::vector<double> x_point = get_parabolas_intersection_on_axis_X(new_edge[0], lokus->point->y - 100);
                 std::vector<double> y_point = get_parabolas_intersection_on_axis_Y(new_edge[0], x_point);
                 if (y_point[0] < intersect_point->y)
-                {
                     insert_edge(top_item, top_pos, new_edge[0]);
-                    near_left_lokus->edges.push_back(new_edge[0]->edge);
-                    near_right_lokus->edges.push_back(new_edge[0]->edge);
-                }
                 else
-                {
                     insert_edge(top_item, top_pos, new_edge[1]);
-                    near_left_lokus->edges.push_back(new_edge[0]->edge);
-                    near_right_lokus->edges.push_back(new_edge[0]->edge);
-                }
             }
             if (height_left > height_right)
                 del_edge(near_right, current_root, pos_right);
@@ -309,31 +331,31 @@ namespace vor
             if (left_friend != nullptr)
                 left_friend->right = right_friend;
             if (right_friend != nullptr)
-                right_friend->right = left_friend;
+                right_friend->left = left_friend;
         } else
         {
             bool update = false;
             for (int i = 0;i < current_root->edges.size(); ++i)
             {
-                EdgeType position = get_position_depend_on_edge(current_root->edges[i], lokus);
+                EdgeType position = get_position_depend_on_edge(current_root->edges[i], lokuses[1]);
                 if (position == EdgeType::LEFT)         //left side
                 {
-                    rec_del(current_root->children[i], lokus, sweep_line);
+                    rec_del(current_root->children[i], lokuses, sweep_line);
                     update = true;
                     break;
                 }
                 else if (position == EdgeType::VERTICAL)//lying on it
                 {
                     if (current_root->edges[i]->type == EdgeType::RIGHT)
-                        rec_del(current_root->children[i], lokus, sweep_line);
+                        rec_del(current_root->children[i], lokuses, sweep_line);
                     else
-                        rec_del(current_root->children[i+1], lokus, sweep_line);
+                        rec_del(current_root->children[i+1], lokuses, sweep_line);
                     update = true;
                     break;
                 }
             }
             if (!update)
-                rec_del(current_root->children.back(), lokus, sweep_line);
+                rec_del(current_root->children.back(), lokuses, sweep_line);
         }
     }
 
@@ -354,6 +376,8 @@ namespace vor
 
             double a = p2 - p1, b = (p2 * h1 - p1 * h2), c = p2 * h1 * h1 - p1 * h2 * h2 + 4 * p1 * p2 * (k1 - k2);
             double x1 = (b - sqrt(b * b - a * c)) / a, x2 = (b + sqrt(b * b - a * c)) / a;
+            if (x1 > x2)
+                std::swap(x1, x2);
             ans.push_back(x1);
             ans.push_back(x2);
         }
@@ -366,7 +390,7 @@ namespace vor
         TLine line = edge->edge->line;
         std::vector<double> y_points;
         y_points.push_back((-line.a*x_points[0]-line.c)/line.b);
-        y_points.push_back((-line.a*x_points[0]-line.c)/line.b);
+        y_points.push_back((-line.a*x_points[1]-line.c)/line.b);
         return y_points;
     }
 
@@ -426,6 +450,7 @@ namespace vor
         for (int i = pos_to_del;i < parent->edges.size()-1; ++i)
             parent->edges[i] = parent->edges[i+1];
         parent->edges.pop_back();
+
         for (int i = child_pos; i < parent->children.size() - 1; ++i)
             parent->children[i] = parent->children[i+1];
         parent->children.pop_back();
@@ -472,7 +497,7 @@ namespace vor
         {
             ans.first = parent;
             ans.second.push_back(1);
-            ans.second.push_back(root_pos-val);
+            ans.second.push_back(root_pos-(val > 0));
         } else
         {
             ans = get_near(parent, val);
@@ -491,7 +516,7 @@ namespace vor
         std::vector<std::shared_ptr<Lokus> > arcs;
         if (current_root->type == ItemType::Arc)
         {
-            if (lokus != current_root)
+            if (lokus != current_root->lokus)
             {
                 for (int i = 0;i < 5; ++i)
                     arcs.push_back(nullptr);
