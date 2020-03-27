@@ -7,19 +7,19 @@
 namespace vor
 {
 
-    void BeachLineItem::set_left(std::shared_ptr<BeachLineItem> new_left)
+    void TreeItem::set_left(std::shared_ptr<TreeItem> new_left)
     {
         left = new_left;
         new_left->parent = shared_from_this();
     }
 
-    void BeachLineItem::set_right(std::shared_ptr<BeachLineItem> new_right)
+    void TreeItem::set_right(std::shared_ptr<TreeItem> new_right)
     {
         right = new_right;
         new_right->parent = shared_from_this();
     }
 
-    void BeachLineItem::set_parent_from_item(std::shared_ptr<BeachLineItem> item)
+    void TreeItem::set_parent_from_item(std::shared_ptr<TreeItem> item)
     {
         if (item == nullptr)
             return;
