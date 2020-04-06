@@ -22,11 +22,12 @@ namespace vor
 
     struct SweepEvent
     {
+        int time;
         EventType type;
         std::shared_ptr<Lokus> lokus;
         std::vector<std::shared_ptr<Lokus> > to_delete;
-        SweepEvent(): lokus(nullptr), type(EventType::None) { to_delete.clear(); };
-        SweepEvent(EventType type, std::shared_ptr<Lokus> lokus):type(type), lokus(lokus) { to_delete.clear(); };
+        SweepEvent():time(0), lokus(nullptr), type(EventType::None) { to_delete.clear(); };
+        SweepEvent(EventType type, std::shared_ptr<Lokus> lokus, int time):type(type), lokus(lokus), time(time) { to_delete.clear(); };
     };
 
     class Voroniy
@@ -37,6 +38,11 @@ namespace vor
         std::shared_ptr<TPoint> get_the_most_bottom_circle_dot(std::shared_ptr<TPoint> z0,
                                                                std::shared_ptr<TPoint> z1,
                                                                std::shared_ptr<TPoint> z2);
+
+        bool check_intersection_for_3_parabolas(std::shared_ptr<TPoint> z0,
+                                                std::shared_ptr<TPoint> z1,
+
+                                                std::shared_ptr<TPoint> z2);
     public:
         Voroniy(){points.clear(), lokuses.clear(), points_number = 0;}
         void input_points(std::string file_name);

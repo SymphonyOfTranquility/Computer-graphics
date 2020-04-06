@@ -94,6 +94,16 @@ namespace vor
                 current_root->right = new_center_leaf;
                 new_center_leaf->left = current_root;
                 new_right_leaf->left = new_center_leaf;
+
+                //add crossing
+                can_cross.clear();
+                if (current_root->left != nullptr)
+                    can_cross.push_back(current_root->left->lokus);
+                can_cross.push_back(current_root->lokus);
+                can_cross.push_back(new_center_leaf->lokus);
+                can_cross.push_back(new_right_leaf->lokus);
+                if (new_right_leaf->right != nullptr)
+                    can_cross.push_back(new_right_leaf->right->lokus);
             }
             else
             {
@@ -332,6 +342,15 @@ namespace vor
                 left_friend->right = right_friend;
             if (right_friend != nullptr)
                 right_friend->left = left_friend;
+
+            //add crossing
+            can_cross.clear();
+            if (left_friend->left != nullptr)
+                can_cross.push_back(left_friend->left->lokus);
+            can_cross.push_back(left_friend->lokus);
+            can_cross.push_back(right_friend->lokus);
+            if (right_friend->right != nullptr)
+                can_cross.push_back(right_friend->right->lokus);
         } else
         {
             bool update = false;
@@ -505,7 +524,6 @@ namespace vor
         }
         return ans;
     }
-
     std::vector<std::shared_ptr<Lokus> > BeachLineTree::get(std::shared_ptr<Lokus> lokus)
     {
         return rec_get(root, lokus);
@@ -574,5 +592,10 @@ namespace vor
                 arcs = rec_get(current_root->children.back(), lokus);
         }
         return arcs;
+    }
+
+    std::vector<std::shared_ptr<Lokus> > BeachLineTree::get_can_cross()
+    {
+        return can_cross;
     }
 }

@@ -86,11 +86,16 @@ namespace vor
 
         std::vector<std::shared_ptr<Lokus> > rec_get(std::shared_ptr<TreeItem> current_root, std::shared_ptr<Lokus> lokus);
 
+
+        std::vector<std::shared_ptr<Lokus> > can_cross;
+
     public:
         BeachLineTree():root(nullptr){};
         void add(std::shared_ptr<Lokus> lokus);
         void del(std::vector<std::shared_ptr<Lokus> > lokuses, double sweep_line);
         std::vector<std::shared_ptr<Lokus> > get(std::shared_ptr<Lokus> lokus);
+
+        std::vector<std::shared_ptr<Lokus> > get_can_cross();
     };
 
 }
