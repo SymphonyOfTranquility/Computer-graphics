@@ -1,109 +1,75 @@
+import gc
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib import animation
+from matplotlib.widgets import Button
 from matplotlib import collections as mc
 import math
 
 # Initializing number of dots
-N = 25
+from Point import Point
+from Voroniy import Voroniy
+
+SIZE = 7
 
 
-# Creating dot class
-class dot(object):
-    def __init__(self):
-        self.x = 10 * np.random.random_sample()
-        self.y = 10 * np.random.random_sample()
-        self.velx = self.generate_new_vel()
-        self.vely = self.generate_new_vel()
-        self.line_X = [self.x + 1, self.y+1]
-        self.line_Y = [self.x - 1, self.y+1]
+def inc(event):
+    global SIZE
+    SIZE += 1
 
-    def generate_new_vel(self):
-        return (np.random.random_sample() - 0.5) / 5
 
-    def move(self):
-        def distance(x1, y1, x2, y2):
-            return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+def dec(event):
+    global SIZE
+    SIZE = max(3, SIZE-1)
 
-        def inside(x1, y1):
-            if distance(x1, y1, 5, 5) <= 1:
-                return True
-            else:
-                return False
 
-        def calc_dist(d):
-            ret = 0
-            for x in dots:
-                if inside(x.x, x.y) and x != d:
-                    ret = ret + distance(x.x, x.y, d.x, d.y)
-            return ret
+def gen_point():
+    x = np.random.random_sample()*20
+    if np.random.random_sample() <= 0.5:
+        x = -x
+    y = np.random.random_sample()*20
+    if np.random.random_sample() <= 0.5:
+        y = -y
+    return Point(x, y)
 
-        # if dot is inside the circle it tries to maximize the distances to
-        # other dots inside circle
-        if inside(self.x, self.y):
-            dist = calc_dist(self)
-            for i in range(1, 10):
-                self.velx = self.generate_new_vel()
-                self.vely = self.generate_new_vel()
-                self.x = self.x + self.velx
-                self.y = self.y + self.vely
-                if calc_dist(self) <= dist or not inside(self.x, self.y):
-                    self.x = self.x - self.velx
-                    self.y = self.y - self.vely
-        else:
-            if np.random.random_sample() < 0.95:
-                self.x = self.x + self.velx
-                self.y = self.y + self.vely
-            else:
-                self.velx = self.generate_new_vel()
-                self.vely = self.generate_new_vel()
-                self.x = self.x + self.velx
-                self.y = self.y + self.vely
-            if self.x >= 10:
-                self.x = 10
-                self.velx = -1 * self.velx
-            if self.x <= 0:
-                self.x = 0
-                self.velx = -1 * self.velx
-            if self.y >= 10:
-                self.y = 10
-                self.vely = -1 * self.vely
-            if self.y <= 0:
-                self.y = 0
-                self.vely = -1 * self.vely
 
-        self.line_X = [self.x + 1, self.y+1]
-        self.line_Y = [self.x - 1, self.y+1]
+def set_vals(event):
+    voroniy = Voroniy()
+    points = [gen_point() for i in range(SIZE)]
+    voroniy.set_points(points)
+    voroniy.fortune_algorithm(-20, -20, 20, 20, p, lc)
+    all_edges = voroniy.get_all_edges()
+    x = np.empty(0)
+    for i in range(len(all_edges)):
+        x = np.append(x, [[all_edges[i][0].x, all_edges[i][0].y], [all_edges[i][1].x, all_edges[i][1].y]])
+    x = np.reshape(x, (x.shape[0] // 4, 2, 2))
+    lc.set_segments(x)
+    p.set_data([point.x for point in points],
+               [point.y for point in points])
+
 
 
 # Initializing dots
-dots = [dot() for i in range(N)]
 
+# dots = [dot() for i in range(N)]
 # First set up the figure, the axis, and the plot element we want to animate
 fig = plt.figure()
-ax = plt.axes(xlim=(0, 10), ylim=(0, 10))
-d, = ax.plot([dot.x for dot in dots],
-             [dot.y for dot in dots],
+ax = plt.axes(xlim=(-20, 20), ylim=(-20, 20))
+p, = ax.plot([],
+             [],
              'ro')
-lc = mc.LineCollection([[dot.line_X, dot.line_Y] for dot in dots], colors='green', linewidths=2)
 
+lc = mc.LineCollection([], colors='green', linewidths=2)
 ax.add_collection(lc)
-circle = plt.Circle((5, 5), 1, color='b', fill=False)
-ax.add_artist(circle)
 
+set_vals(10)
 
-# animation function.  This is called sequentially
-def animate(i):
-    for dot in dots:
-        dot.move()
-    d.set_data([dot.x for dot in dots],
-               [dot.y for dot in dots])
-    x = np.array([[[dot.line_X[0], dot.line_X[1]], [dot.line_Y[0], dot.line_Y[1]]] for dot in dots])
-    lc.set_segments(x)
-    return d
-
-
-# call the animator.  blit=True means only re-draw the parts that have changed.
-anim = animation.FuncAnimation(fig, animate, frames=200, interval=20)
-
+axgen = plt.axes([0, 0, 0.05, 0.05])
+axinc = plt.axes([0.06, 0, 0.05, 0.05])
+axdec = plt.axes([0.11, 0, 0.05, 0.05])
+button = Button(axgen, 'Gen')
+button.on_clicked(set_vals)
+button1 = Button(axinc, 'Inc')
+button1.on_clicked(inc)
+button2 = Button(axdec, 'Dec')
+button2.on_clicked(dec)
 plt.show()

@@ -9,6 +9,7 @@ int main()
     {
         convex.get_approximate(i);
         convex.output();
+        std::cout << '\n';
     }
 
     return 0;

@@ -1,6 +1,8 @@
 import heapq
 import enum
+
 import numpy as np
+import gc
 
 from BeachLineTree import BeachLineTree
 from EdgeAndLocus import Locus, Edge
@@ -24,7 +26,7 @@ class _SweepEvent:
     def __lt__(self, other):
         if abs(self.locus.point.y - other.locus.point.y) < EPS_CONST:
             if abs(self.locus.point.x - other.locus.point.x) < EPS_CONST:
-                if self.type == _EventType.NewLocus:
+                if self.type == _EventType.DeleteLocus:
                     return True
                 else:
                     return False
@@ -133,14 +135,12 @@ class Voroniy:
 
             dict_to_low = self._dictance(x1, y1, t_loci.x, y_div)
             dict_to_high = self._dictance(x2, y2, t_loci.x, y_div)
-            if abs(dict_to_low - dict_to_high) < EPS_CONST:
-                return loci[i][1] == s_loci
-            elif dict_to_low < dict_to_high:
+            if dict_to_low < dict_to_high:
                 return loci[i][1].point == f_loci and loci[i+1][1].point == s_loci and loci[i+2][1].point == t_loci
             else:
                 return loci[i][1].point == t_loci and loci[i + 1][1].point == s_loci and loci[i + 2][1].point == f_loci
 
-    def fortune_algorithm(self):
+    def fortune_algorithm(self, x_min, y_min, x_max, y_max, p, lc):
         self.loci = np.empty(0, Locus)
         queue = _PriorityQueue()
         for i in range(self.points_number):
@@ -152,35 +152,63 @@ class Voroniy:
         tree = BeachLineTree()
         time = 1
         prev_line = queue.top().locus.point.y + 10
+
+        print('---------------------------------------------------------------------------------------------------',
+              time)
+        # self.output()
         while not queue.empty():
             top = queue.top()
             queue.pop()
+
             print(top.locus.point.x, top.locus.point.y, top.type)
             if top.type == _EventType.NewLocus:
                 tree.add(top.locus)
             else:
-                tree.delete(top.loci, Point(top.locus.point.x, (top.locus.point.y+prev_line)/2.0))
+                print('\t', top.loci[0][0], top.loci[0][1].point.x, top.loci[0][1].point.y)
+                print('\t', top.loci[1][0], top.loci[1][1].point.x, top.loci[1][1].point.y)
+                print('\t', top.loci[2][0], top.loci[2][1].point.x, top.loci[2][1].point.y)
+                tree.delete(top.loci, Point(top.locus.point.x, top.locus.point.y))
 
             loci_to_check = tree.get_crossed()
             if len(loci_to_check) >= 3:
                 for i in range(len(loci_to_check)-2):
+                    print('\t\t', loci_to_check[i][0], loci_to_check[i][1].point.x, loci_to_check[i][1].point.y)
+                    print('\t\t', loci_to_check[i+1][0], loci_to_check[i+1][1].point.x, loci_to_check[i+1][1].point.y)
+                    print('\t\t', loci_to_check[i+2][0], loci_to_check[i+2][1].point.x, loci_to_check[i+2][1].point.y)
                     if not self._check_on_1_line(loci_to_check, i) and self._check_order(loci_to_check, i):
                         circle_dot = self._get_bottom_circle_dot(loci_to_check, i)
                         locus = Locus(circle_dot)
                         event = _SweepEvent(_EventType.DeleteLocus, locus, time)
                         event.loci = loci_to_check[i:i+3]
                         queue.push(event)
-            self.output()
+                        print('\tadd to del')
+                    else:
+                        print('\tnot add to del')
             time += 1
             if abs(prev_line - top.locus.point.y) > EPS_CONST:
                 prev_line = top.locus.point.y
-        x_min, y_min, x_max, y_max = -1, -1, 8, 8
+
         tree.set_ends_to_all(x_min, y_min, x_max, y_max)
         for locus in self.loci:
             for edge in locus.edges:
                 if edge.end is None:
                     new_x = -edge.line.c/edge.line.a
-                    edge.end = Point(new_x, y_max)
+                    if edge.start.y > y_max:
+                        edge.end = Point(new_x, edge.start.y + 10)
+                    else:
+                        edge.end = Point(new_x, edge.start.y)
+
+        # print('last ---------------------------------------------------------------------------------------------------')
+        # self.output()
+        del tree
+
+    def get_all_edges(self):
+        ans = np.empty(0)
+        for locus in self.loci:
+            for edge in locus.edges:
+                ans = np.append(ans, [edge.start, edge.end])
+        ans = np.reshape(ans, (ans.shape[0]//2, 2))
+        return ans
 
     def output(self):
         for locus in self.loci:
@@ -196,9 +224,26 @@ class Voroniy:
                 print('\t\tLine:', edge.line.a, edge.line.b, edge.line.c)
         print()
 
+    def del_all(self):
+        for locus in self.loci:
+            for edge in locus.edges:
+                del edge
+            del locus
 
-vor = Voroniy()
-points = [Point(1, 2), Point(3, 2), Point(3, 0), Point(3, 3), Point(5, 3)]
-vor.set_points(points)
-vor.fortune_algorithm()
-vor.output()
+
+
+def uuuuuuuuuuuuuu():
+    vor = Voroniy()
+    # points = [Point(1, 2), Point(3, 2), Point(3, 0), Point(3, 3), Point(5, 3)]
+    # points = [Point(1.86, 6.78), Point(4.99, 2.67), Point(7.04, 5.07), Point(7.73, 2.67), Point(0.61, 5.49)]
+    points = [Point(8.206800937713417, 0.1530424653704754),
+              Point(3.096030343927031, 8.707789366765189),
+              Point(9.590000000000009, 3.2966319428862345),
+              Point(0.3372827188443621, 0.08),
+              Point(9.363882877397486, 8.172779243194537),
+              Point(8.767907152961538, 6.440289536868966)]
+    vor.set_points(points)
+    vor.fortune_algorithm(0, 0, 10,
+                          10)
+    vor.output()
+

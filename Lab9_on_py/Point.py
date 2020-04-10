@@ -1,4 +1,4 @@
-EPS_CONST = 0.000001
+EPS_CONST = 0.000000001
 
 
 class Point:

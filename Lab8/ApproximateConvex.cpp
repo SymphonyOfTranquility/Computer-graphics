@@ -11,7 +11,8 @@
 
 namespace convexhull_space
 {
-    void ApproximateConvex::input_points(std::string file_name)
+    void ApproximateConvex::input_po
+    ints(std::string file_name)
     {
         std::ifstream file;
         file.open(file_name);

@@ -1,4 +1,7 @@
 import enum
+import math
+from math import atan2
+
 import numpy as np
 
 from EdgeAndLocus import Locus, Edge
@@ -24,6 +27,10 @@ class _BeachLineEdge:
         self.edge = edge
         self.type = edge_type
 
+    def __del__(self):
+        self.edge = None
+        del self.type
+
 
 class _TreeItem:
 
@@ -45,6 +52,18 @@ class _TreeItem:
     def set_to_edge(self):
         self.type = _BeachType.EDGE
         self.edges = np.empty(0, _BeachLineEdge)
+
+    def __del__(self):
+        self.parent = None
+        if self.type == _BeachType.EDGE:
+            for edge in self.edges:
+                del edge
+        self.children = None
+        self.locus = None
+        self.right = None
+        self.left = None
+        self.type = None
+        self.id = None
 
 
 class BeachLineTree:
@@ -153,6 +172,8 @@ class BeachLineTree:
         else:  # It have to be an edge -> find that child that locus intersects
             update = False
             last_vertical = -1
+            count_vert = 0
+            ind = -1
             for i in range(len(root.edges)):
                 position = self._get_position_depend_on_edge(root.edges[i], locus.point)
                 if position == _EdgeType.LEFT:  # on the left of edge
@@ -165,10 +186,30 @@ class BeachLineTree:
                         last_vertical = i
                     else:
                         last_vertical = i+1
+                    count_vert += 1
+                    ind = i
                     update = True
 
-            if last_vertical != -1:
+            if count_vert == 1:
                 root = self._rec_add(root.children[last_vertical], locus)
+            elif count_vert > 1:
+                def _get_distance(x, y, point):
+                    line = Edge.Line()
+                    line.set_vals_by_points(Point(x[0], y[0]), Point(x[1], y[1]))
+                    return abs(line.a*point.x + line.b*point.y + line.c)/(line.a**2 + line.b**2)**0.5
+
+                ans = last_vertical
+                dist = 10000000000000000
+                for i in range(count_vert):
+                    x_point = self._get_parabolas_intersection_on_axis_x(root.edges[ind-i], locus.point)
+                    if x_point is Point:
+                        ans = ind-1
+                        break
+                    y_point = self._get_parabolas_intersection_on_axis_y(root.edges[ind-i], x_point)
+                    if dist < _get_distance(x_point, y_point, locus.point):
+                        dist = _get_distance(x_point, y_point, locus.point)
+                        ans = ind-i
+                root = self._rec_add(root.children[ans], locus)
             elif not update:  # the most right edge
                 root = self._rec_add(root.children[-1], locus)
             if len(root.children) > 3:  # size more than 3 -> create new vertex in tree split current
@@ -227,18 +268,23 @@ class BeachLineTree:
     def _get_line_parabola_intersection(self, focus, locus):
         point = Point()
         point.x = locus.x
-        point.y = ((locus.x - focus.x) * (locus.x - focus.x) + focus.y * focus.y - locus.y * locus.y) / \
-                  (2 * (focus.y - locus.y))
+        point.y = (locus.x - focus.x)**2/(2.0*(focus.y-locus.y)) + (locus.y + focus.y)/2.0
         return point
 
     def _get_position_depend_on_edge(self, edge, locus_point):
-        x_point = self._get_parabolas_intersection_on_axis_x(edge, locus_point.y)
-
+        x_point = self._get_parabolas_intersection_on_axis_x(edge, locus_point)
         if edge.type == _EdgeType.VERTICAL:
             if locus_point.x > x_point[0]:
                 return _EdgeType.RIGHT
             else:
                 return _EdgeType.LEFT
+        elif isinstance(x_point, Point):
+            if abs(locus_point.x-x_point.x) < EPS_CONST:
+                return _EdgeType.VERTICAL
+            if locus_point.x < x_point.x:
+                return _EdgeType.LEFT
+            else:
+                return _EdgeType.RIGHT
         else:
             x1 = x_point[0]
             x2 = x_point[1]
@@ -261,9 +307,13 @@ class BeachLineTree:
         else:
             point_a = edge.edge.right_locus.point
             point_b = edge.edge.left_locus.point
+            if abs(point_a.y - sweep_line.y) < EPS_CONST:
+                return point_a
+            elif abs(point_b.y - sweep_line.y) < EPS_CONST:
+                return point_b
 
-            p1, p2 = (point_a.y - sweep_line) / 2.0, (point_b.y - sweep_line) / 2.0
-            k1, k2 = (point_a.y + sweep_line) / 2.0, (point_b.y + sweep_line) / 2.0
+            p1, p2 = (point_a.y - sweep_line.y) / 2.0, (point_b.y - sweep_line.y) / 2.0
+            k1, k2 = (point_a.y + sweep_line.y) / 2.0, (point_b.y + sweep_line.y) / 2.0
             h1, h2 = point_a.x, point_b.x
 
             a = p2 - p1
@@ -273,8 +323,13 @@ class BeachLineTree:
             x1 = (b - (b * b - a * c) ** 0.5) / a
             x2 = (b + (b * b - a * c) ** 0.5) / a
 
-            if x1 > x2:
-                x1, x2 = x2, x1
+            try:
+                if x1 > x2:
+                    x1, x2 = x2, x1
+            except:
+                print(x1, x2)
+                x1 = abs(x1)
+                x2 = abs(x2)
             return np.array([x1, x2])
 
     # delete arc from tree
@@ -283,19 +338,32 @@ class BeachLineTree:
 
     def _rec_del(self, root, loci, sweep_line):
         if root.type == _BeachType.ARC:
-            if not ((root.left is not None) and (root.right is not None) and
-                    root.left.id == loci[0][0] and root.id == loci[1][0] and root.right.id == loci[2][0]):
-                if ((root.left is not None) and (root.left.left is not None) and
-                        root.left.left.id == loci[0][0] and root.left.id == loci[1][0] and root.id == loci[2][0]):
-                    root = root.left
-                else:
-                    if ((root.right is not None) and (root.right.right is not None) and
-                            root.id == loci[0][0] and root.right.id == loci[1][0] and
-                            root.right.right.id == loci[2][0]):
-                        root = root.right
-                    else:
-                        return
+            temp = root
+            upd = False
+            for i in range(20):
+                if temp is None:
+                    break
+                if (temp.left is not None) and (temp.right is not None) and \
+                        temp.left.id == loci[0][0] and temp.id == loci[1][0] and temp.right.id == loci[2][0]:
+                    root = temp
+                    upd = True
+                    break
+                temp = temp.left
+            if not upd:
+                temp = root
+                for i in range(20):
+                    if temp is None:
+                        break
+                    if (temp.left is not None) and (temp.right is not None) and \
+                            temp.left.id == loci[0][0] and temp.id == loci[1][0] and temp.right.id == loci[2][0]:
+                        root = temp
+                        upd = True
+                        break
+                    temp = temp.right
 
+            if not upd:
+                return
+            print('success')
             locus = loci[1][1]
             parent = root.parent
             near_left, height_left, pos_left = self._get_near(root, 1)  # move on the left
@@ -327,10 +395,10 @@ class BeachLineTree:
             if len(new_edge) == 1:
                 self._insert_edge(top_item, top_pos, new_edge[0])
             else:
-                x_point = self._get_parabolas_intersection_on_axis_x(new_edge[0], locus.point.y - 100)
+                x_point = self._get_parabolas_intersection_on_axis_x(new_edge[0], Point(locus.point.x, locus.point.y - 1000))
                 y_point = self._get_parabolas_intersection_on_axis_y(new_edge[0], x_point)
-
-                if y_point[0] < intersection_point.y:
+                if self._check_angel(x_point, y_point, intersection_point,
+                                     near_left.edges[pos_left], near_right.edges[pos_right]):
                     self._insert_edge(top_item, top_pos, new_edge[0])
                 else:
                     self._insert_edge(top_item, top_pos, new_edge[1])
@@ -355,11 +423,14 @@ class BeachLineTree:
                 self._can_be_crossed = np.append(self._can_be_crossed, [(right_friend.right.id,
                                                                          right_friend.right.locus)])
             self._can_be_crossed = self._can_be_crossed.reshape(self._can_be_crossed.shape[0] // 2, 2)
+            del root
         else:
             # It have to be an edge -> find that child that locus intersects
             update = False
             point_to_search = sweep_line
             last_vertical = -1
+            count_vert = 0
+            ind = -1
             for i in range(len(root.edges)):
                 position = self._get_position_depend_on_edge(root.edges[i], point_to_search)
                 if position == _EdgeType.LEFT:  # on the left of edge
@@ -372,9 +443,30 @@ class BeachLineTree:
                         last_vertical = i
                     else:
                         last_vertical = i + 1
+                    ind = i
+                    count_vert += 1
                     update = True
-            if last_vertical != -1:
+
+            if count_vert == 1:
                 self._rec_del(root.children[last_vertical], loci, sweep_line)
+            elif count_vert > 1:
+                def _get_distance(x, y, point):
+                    line = Edge.Line()
+                    line.set_vals_by_points(Point(x[0], y[0]), Point(x[1], y[1]))
+                    return abs(line.a*point.x + line.b*point.y + line.c)/(line.a**2 + line.b**2)**0.5
+
+                ans = last_vertical
+                dist = 10000000000000000
+                for i in range(count_vert):
+                    x_point = self._get_parabolas_intersection_on_axis_x(root.edges[ind-i], sweep_line)
+                    if isinstance(x_point, Point):
+                        ans = ind-1
+                        break
+                    y_point = self._get_parabolas_intersection_on_axis_y(root.edges[ind-i], x_point)
+                    if dist < _get_distance(x_point, y_point, sweep_line):
+                        dist = _get_distance(x_point, y_point, sweep_line)
+                        ans = ind-i
+                self._rec_del(root.children[ans], loci, sweep_line)
             elif not update:  # the most right edge
                 self._rec_del(root.children[-1], loci, sweep_line)
 
@@ -431,12 +523,8 @@ class BeachLineTree:
                     grandpa.children[i] = last_child
                     last_child.parent = grandpa
                     break
-            parent.parent = None
-            parent.right = None
-            parent.left = None
-            parent.children = np.empty(0, _TreeItem)
-            parent.edges = np.empty(0, _BeachLineEdge)
-            parent.type = None
+
+            del parent
 
     def _get_parabolas_intersection_on_axis_y(self, edge, x_point):
         line = edge.edge.line
@@ -455,6 +543,9 @@ class BeachLineTree:
             edge = beach_edge.edge
             line = edge.line
             if edge.start is None:
+                edge.start = Point(-100, 100)
+                edge.end = Point(-100, 100)
+                """
                 if abs(line.a) < EPS_CONST:
                     edge.start = Point(x_min, -line.c/line.b)
                     edge.end = Point(x_max, -line.c/line.b)
@@ -466,7 +557,7 @@ class BeachLineTree:
                     if y_min <= new_y_min <= y_max:
                         edge.start = Point(x_min, new_y_min)
                     else:
-                        if new_y_min <= y_min <= edge.start.y:
+                        if new_y_min <= y_min:
                             new_y = y_min
                         else:
                             new_y = y_max
@@ -482,11 +573,15 @@ class BeachLineTree:
                         else:
                             new_y = y_max
                         new_x_max = -(line.c + line.b*new_y)/line.a
-                        edge.end = Point(new_x_max, new_y)
+                        edge.end = Point(new_x_max, new_y)"""
             elif edge.end is None:
+                # if (edge.start.y < y_min or edge.start.y > y_max or edge.start.x < x_min or edge.start.x > x_max):
+                #   edge.end = edge.start
                 if beach_edge.type == _EdgeType.LEFT:
                     new_y_min = -(line.c + line.a*x_min)/line.b
-                    if y_min <= new_y_min <= y_max:
+                    if x_min > edge.start.x:
+                        edge.end = Point(edge.start.x - 10, -(line.c + line.b * (edge.start.x - 10)) / line.a)
+                    elif y_min <= new_y_min <= y_max:
                         edge.end = Point(x_min, new_y_min)
                     else:
                         if new_y_min <= y_min:
@@ -497,7 +592,9 @@ class BeachLineTree:
                         edge.end = Point(new_x_min, new_y)
                 elif beach_edge.type == _EdgeType.RIGHT:
                     new_y_max = -(line.c + line.a*x_max)/line.b
-                    if y_min <= new_y_max <= y_max:
+                    if x_max < edge.start.x:
+                        edge.end = Point(edge.start.x + 10, -(line.c + line.b * (edge.start.x + 10)) / line.a)
+                    elif y_min <= new_y_max <= y_max:
                         edge.end = Point(x_max, new_y_max)
                     else:
                         if new_y_max <= y_min:
@@ -508,7 +605,55 @@ class BeachLineTree:
                         edge.end = Point(new_x_max, new_y)
                 else:
                     new_x = -line.c/line.a
-                    edge.end = Point(new_x, y_min)
+                    edge.end = Point(new_x, min(y_min, edge.start.y-10))
         for child in root.children:
             self._rec_dfs(child, x_min, y_min, x_max, y_max)
 
+    def _check_angel(self, x_point, y_point, intersection_point, edge1, edge2):
+        point1 = edge1.edge.right_locus.point
+        point2 = edge1.edge.left_locus.point
+        if point1 == edge2.edge.right_locus.point:
+            point_mid = point1
+            point1 = edge2.edge.left_locus.point
+        elif point2 == edge2.edge.right_locus.point:
+            point_mid = point2
+            point2 = edge2.edge.left_locus.point
+        elif point1 == edge2.edge.left_locus.point:
+            point_mid = point1
+            point1 = edge2.edge.right_locus.point
+        else:
+            point_mid = point2
+            point2 = edge2.edge.right_locus.point
+        line = Edge.Line()
+        line.set_vals_by_points(point1, point2)
+        vor_line = Edge.Line()
+        vor_line.set_vals_by_points(Point(x_point[0], y_point[0]), Point(x_point[1], y_point[1]))
+        point_line_center = Point((point1.x + point2.x)/2, (point1.y + point2.y)/2)
+        if point1.y < point2.y:
+            point1, point2 = point2, point1
+        angle = self._get_angle(point1, point2, point_mid)
+        dist_0 = line.a*x_point[0] + line.b*y_point[0] + line.c
+        dist_1 = line.a*x_point[1] + line.b*y_point[1] + line.c
+        dist_center = line.a*intersection_point.x + line.b*intersection_point.y + line.c
+        if dist_center > 0 and dist_0 < 0 and abs(angle) <= 90 or \
+                abs(angle > 90) and dist_center < 0 and dist_0 < 0:
+            return True
+        else:
+            return False
+
+    def _get_angle(self, a, b, u):
+        vec_a = Point(a.x - u.x, a.y - u.y)
+        vec_b = Point(b.x - u.x, b.y - u.y)
+        dot = vec_a.x*vec_b.x + vec_a.y*vec_b.y
+        det = vec_a.x*vec_b.y - vec_a.y*vec_b.x
+        return atan2(det, dot)*180.0/math.pi
+
+    def __del__(self):
+        def rec_del(root):
+            for child in root.children:
+                rec_del(child)
+                del child
+
+        rec_del(self._root)
+        del self._root
+        self._can_be_crossed = None

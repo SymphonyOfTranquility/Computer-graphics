@@ -8,6 +8,10 @@ class Locus:
         self.point = p
         self.edges = np.empty(0, Edge)
 
+    def __del__(self):
+        self.point = None
+        self.edges = None
+
 
 class Edge:
 
@@ -39,3 +43,14 @@ class Edge:
         else:
             self.direction = None
             self.line = None
+
+    def __del__(self):
+        self.start = None
+        self.end = None
+        self.right_locus = None
+        self.left_locus = None
+        if self.direction is not None:
+            del self.direction
+        if self.line is not None:
+            del self.line
+
