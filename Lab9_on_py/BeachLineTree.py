@@ -363,7 +363,7 @@ class BeachLineTree:
 
             if not upd:
                 return
-            print('success')
+            # print('success')
             locus = loci[1][1]
             parent = root.parent
             near_left, height_left, pos_left = self._get_near(root, 1)  # move on the left

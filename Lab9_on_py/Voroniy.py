@@ -153,37 +153,25 @@ class Voroniy:
         time = 1
         prev_line = queue.top().locus.point.y + 10
 
-        print('---------------------------------------------------------------------------------------------------',
-              time)
-        # self.output()
         while not queue.empty():
             top = queue.top()
             queue.pop()
 
-            print(top.locus.point.x, top.locus.point.y, top.type)
             if top.type == _EventType.NewLocus:
                 tree.add(top.locus)
             else:
-                print('\t', top.loci[0][0], top.loci[0][1].point.x, top.loci[0][1].point.y)
-                print('\t', top.loci[1][0], top.loci[1][1].point.x, top.loci[1][1].point.y)
-                print('\t', top.loci[2][0], top.loci[2][1].point.x, top.loci[2][1].point.y)
                 tree.delete(top.loci, Point(top.locus.point.x, top.locus.point.y))
 
             loci_to_check = tree.get_crossed()
             if len(loci_to_check) >= 3:
                 for i in range(len(loci_to_check)-2):
-                    print('\t\t', loci_to_check[i][0], loci_to_check[i][1].point.x, loci_to_check[i][1].point.y)
-                    print('\t\t', loci_to_check[i+1][0], loci_to_check[i+1][1].point.x, loci_to_check[i+1][1].point.y)
-                    print('\t\t', loci_to_check[i+2][0], loci_to_check[i+2][1].point.x, loci_to_check[i+2][1].point.y)
                     if not self._check_on_1_line(loci_to_check, i) and self._check_order(loci_to_check, i):
                         circle_dot = self._get_bottom_circle_dot(loci_to_check, i)
                         locus = Locus(circle_dot)
                         event = _SweepEvent(_EventType.DeleteLocus, locus, time)
                         event.loci = loci_to_check[i:i+3]
                         queue.push(event)
-                        print('\tadd to del')
-                    else:
-                        print('\tnot add to del')
+
             time += 1
             if abs(prev_line - top.locus.point.y) > EPS_CONST:
                 prev_line = top.locus.point.y
